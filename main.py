@@ -43,13 +43,14 @@ def train(args, _env, agent, writer):
     # Training until episode-condition
     for episode in range(args.episode):
         total_reward = 0
+        done         = False
         state        = env.reset()
 
         # While not terminate
         for t in itertools.count(start=1):
-            if args.render and episode > 700:
-                env.render()
-                time.sleep(0.0082)
+            # if args.render and episode > 700:
+            #     env.render(done)
+            #     time.sleep(0.0082)
 
             # select action
             if total_steps < args.warmup:
@@ -74,7 +75,10 @@ def train(args, _env, agent, writer):
             total_reward += reward
             total_steps  += 1
 
-            env.render(done)
+            if args.render and episode > 700:
+                env.render(done)
+                time.sleep(0.0082)
+
 
             # Break & Record the performance at the end each episode
             if done:
@@ -112,8 +116,8 @@ def test(args, _env, agent, writer):
         state = env.reset()
         done = False
         for t in itertools.count(start=1):
-            env.render(done)
-            time.sleep(0.03)
+            # env.render(done)
+            # time.sleep(0.03)
 
             #action = agent.select_action(state, epsilon, action_space)
             action = agent.select_best_action(state)
@@ -123,6 +127,9 @@ def test(args, _env, agent, writer):
 
             state         = next_state
             total_reward += reward
+
+            env.render(done)
+            time.sleep(0.03)
 
             if done:
                 writer.add_scalar('Test/Episode Reward', total_reward, n_episode)
@@ -135,6 +142,7 @@ def test(args, _env, agent, writer):
 
 
 def main():
+    import config
     ## arguments ##
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-d', '--device', default='cuda')
@@ -159,14 +167,16 @@ def main():
     args = parser.parse_args()
 
     ## main ##
-    usr_interaction = False
-    opt_makespan    = 55
-    file_name       = 'job_info.xlsx'
+    file_name       = config.FILE_NAME
     file_dir        = os.getcwd() + '/simulation_env/input_data'
     file_path       = os.path.join(file_dir, file_name)
 
+    opt_makespan    = config.OPT_MAKESPAN
+    num_machine     = config.NUM_MACHINE
+    num_job         = config.NUM_JOB
+
     # Agent & Environment
-    env    = Factory(6, 6, file_path, opt_makespan, log=False)
+    env    = Factory(num_job, num_machine, file_path, opt_makespan, log=False)
     agent  = DQN(env.dim_observations, env.dim_actions, args)
 
     # Tensorboard to trace the learning process

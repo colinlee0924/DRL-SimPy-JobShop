@@ -22,6 +22,7 @@ from utils.GanttPlot      import Gantt
 
 INFINITY  = float('inf')
 OPTIMAL_L = 55
+ACTION    = 5
 
 #entity
 class Order:
@@ -390,7 +391,7 @@ class Factory:
         self.gantt_plot = Gantt()
 
         #[RL] attributes for the Environment of RL
-        self.dim_actions      = 2
+        self.dim_actions      = ACTION
         self.dim_observations = (3, self.num_job, self.num_job)
         self.observations     = np.zeros(self.dim_observations)
         self.actions          = np.arange(self.dim_actions)
