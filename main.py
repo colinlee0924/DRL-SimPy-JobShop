@@ -84,11 +84,11 @@ def train(args, _env, agent, writer):
             # Break & Record the performance at the end each episode
             if done:
                 ewma_reward = 0.05 * total_reward + (1 - 0.05) * ewma_reward
-                writer.add_scalar('Train-Episode/Episode_Reward', total_reward,
+                writer.add_scalar('Train-Episode/Reward', total_reward,
                                   episode)
-                writer.add_scalar('Train-Episode/Episode_Makespan', env.makespan,
+                writer.add_scalar('Train-Episode/Makespan', env.makespan,
                                   episode)
-                writer.add_scalar('Train-Episode/Episode_Epsilon', epsilon,
+                writer.add_scalar('Train-Episode/Epsilon', epsilon,
                                   episode)
                 writer.add_scalar('Train-Step/Ewma_Reward', ewma_reward,
                                   total_step)
