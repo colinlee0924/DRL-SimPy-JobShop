@@ -11,5 +11,17 @@ DEVICE  = 'cuda'
 MODEL   = 'model/dqn.pth'
 LOG_DIR = 'log/dqn'
 # train
-WARMUP  = 10000
-EPISODE = 1200
+WARMUP         = 10000
+EPISODE        = 1200
+CAPACITY       = 10000
+BATCH_SIZE     = 128
+LEARNING_R     = .0005
+GAMMA          = .99
+EPS_DECAY      = .99982
+EPS_MIN        = .1
+FREQ           = 4
+TARGET_FREQ	   = 500
+RENDER_EPISODE = 900
+# test
+SEED         = 2021111
+TEST_EPSILON = .001

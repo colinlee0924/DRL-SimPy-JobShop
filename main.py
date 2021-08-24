@@ -75,7 +75,7 @@ def train(args, _env, agent, writer):
             total_reward += reward
             total_steps  += 1
 
-            if args.render and episode > 700:
+            if args.render and episode > args.render_episode:
                 env.render(done)
                 time.sleep(0.0082)
 
@@ -149,21 +149,22 @@ def main():
     parser.add_argument('-m', '--model' , default='model/dqn.pth')
     parser.add_argument('--logdir'      , default='log/dqn')
     # train
-    parser.add_argument('--warmup'     , default=10000, type=int)
-    parser.add_argument('--episode'    , default=1200 , type=int)
-    parser.add_argument('--capacity'   , default=10000, type=int)
-    parser.add_argument('--batch_size' , default=128  , type=int)
-    parser.add_argument('--lr'         , default=.0005, type=float)
-    parser.add_argument('--eps_decay'  , default=.9982, type=float)
-    parser.add_argument('--eps_min'    , default=.1   , type=float)
-    parser.add_argument('--gamma'      , default=.99  , type=float)
-    parser.add_argument('--freq'       , default=4    , type=int)
-    parser.add_argument('--target_freq', default=500  , type=int)
+    parser.add_argument('--warmup'        , default=config.WARMUP        , type=int)
+    parser.add_argument('--episode'       , default=config.EPISODE       , type=int)
+    parser.add_argument('--capacity'      , default=config.CAPACITY      , type=int)
+    parser.add_argument('--batch_size'    , default=config.BATCH_SIZE    , type=int)
+    parser.add_argument('--lr'            , default=config.LEARNING_R    , type=float)
+    parser.add_argument('--eps_decay'     , default=config.EPS_DECAY     , type=float)
+    parser.add_argument('--eps_min'       , default=config.EPS_MIN       , type=float)
+    parser.add_argument('--gamma'         , default=config.GAMMA         , type=float)
+    parser.add_argument('--freq'          , default=config.FREQ          , type=int)
+    parser.add_argument('--target_freq'   , default=config.TARGET_FREQ   , type=int)
+    parser.add_argument('--render_episode', default=config.RENDER_EPISODE, type=int)
     # test
     parser.add_argument('--test_only'   , action='store_true')
     parser.add_argument('--render'      , action='store_true')
-    parser.add_argument('--seed'        , default=2021111, type=int)
-    parser.add_argument('--test_epsilon', default=.001   , type=float)
+    parser.add_argument('--seed'        , default=config.SEED        , type=int)
+    parser.add_argument('--test_epsilon', default=config.TEST_EPSILON, type=float)
     args = parser.parse_args()
 
     ## main ##
