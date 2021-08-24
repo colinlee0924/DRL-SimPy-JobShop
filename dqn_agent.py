@@ -84,9 +84,9 @@ class DQN:
         self._memory.append(
             state, 
             [action], 
-            [reward / 10], 
+            [reward],# / 10], 
             next_state,
-            [int(not done)]
+            [1 - int(done)]
         )
 
     def update(self, total_steps):
