@@ -192,31 +192,32 @@ class Queue:
                 order = self.space[0]
             elif self.dspch_rule == 'LIFO':
                 order = self.space[-1]
+            elif self.dspch_rule == 'SPT':
+                indx  = np.argmin([order.prc_time[order.progress] for order in self.space])
+                order = self.space[indx]
+            elif self.dspch_rule == 'LPT':
+                indx  = np.argmax([order.prc_time[order.progress] for order in self.space])
+                order = self.space[indx]
+            elif self.dspch_rule == 'LWKR':
+                indx  = np.argmin([sum(ord.prc_time[ord.progress:]) for ord in self.space])
+                order = self.space[indx]
+            elif self.dspch_rule == 'MWKR':
+                indx  = np.argmax([sum(ord.prc_time[ord.progress:]) for ord in self.space])
+                order = self.space[indx]
+            elif self.dspch_rule == 'SSO':
+                indx  = np.argmin([order.prc_time[order.progress+1] for order in self.space])
+                order = self.space[indx]
+            elif self.dspch_rule == 'LSO':
+                indx  = np.argmax([order.prc_time[order.progress+1] for order in self.space])
+                order = self.space[indx]
+            elif self.dspch_rule == 'SPT+SSO':
+                indx  = np.argmin([sum(ord.prc_time[ord.progress:ord.progress+2]) for ord in self.space])
+                order = self.space[indx]
+            elif self.dspch_rule == 'LPT+LSO':
+                indx  = np.argmax([sum(ord.prc_time[ord.progress:ord.progress+2]) for ord in self.space])
+                order = self.space[indx]
             else:
-                if self.dspch_rule == 'SPT':
-                    indx  = np.argmin([order.prc_time[order.progress] for order in self.space])
-                    order = self.space[indx]
-                elif self.dspch_rule == 'LPT':
-                    indx  = np.argmax([order.prc_time[order.progress] for order in self.space])
-                    order = self.space[indx]
-                elif self.dspch_rule == 'LWKR':
-                    indx  = np.argmin([sum(ord.prc_time[ord.progress:]) for ord in self.space])
-                    order = self.space[indx]
-                elif self.dspch_rule == 'MWKR':
-                    indx  = np.argmax([sum(ord.prc_time[ord.progress:]) for ord in self.space])
-                    order = self.space[indx]
-                elif self.dspch_rule == 'SSO':
-                    indx  = np.argmin([order.prc_time[order.progress+1] for order in self.space])
-                    order = self.space[indx]
-                elif self.dspch_rule == 'LSO':
-                    indx  = np.argmax([order.prc_time[order.progress+1] for order in self.space])
-                    order = self.space[indx]
-                elif self.dspch_rule == 'SPT+SSO':
-                    indx  = np.argmin([sum(ord.prc_time[ord.progress:ord.progress+2]) for ord in self.space])
-                    order = self.space[indx]
-                elif self.dspch_rule == 'LPT+LSO':
-                    indx  = np.argmax([sum(ord.prc_time[ord.progress:ord.progress+2]) for ord in self.space])
-                    order = self.space[indx]
+                raise "[ERROR #1]"
                 # elif self.dspch_rule == 'STPT':
                 #     indx  = np.argmin([sum(order.prc_time) for order in self.space])
                 # elif self.dspch_rule == 'LTPT':
