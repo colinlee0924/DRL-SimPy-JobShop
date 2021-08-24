@@ -24,6 +24,8 @@ INFINITY  = float('inf')
 OPTIMAL_L = 55
 ACTION    = 10 #5
 
+np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning) 
+
 #entity
 class Order:
     def __init__(self, id, routing, prc_time, rls_time, intvl_arr):
@@ -116,7 +118,7 @@ class Dispatcher:
         elif action == 3:
             dspch_rule = 'LPT'
         elif action == 4:
-            dspch_rule = 'TWKR'
+            dspch_rule = 'LWKR'
         elif action == 5:
             dspch_rule = 'MWKR'
         elif action == 6:
@@ -179,7 +181,9 @@ class Queue:
             self.env.process(self.get_order())
 
     def get_order(self):
-        if len(self.space) > 0:
+        if len(self.space) > 1:
+            print()
+            print(self.dspch_rule)
             yield self.fac.dict_dspch_evt[self.id]
 
             #################
@@ -205,25 +209,40 @@ class Queue:
                 indx  = np.argmax([sum(ord.prc_time[ord.progress:]) for ord in self.space])
                 order = self.space[indx]
             elif self.dspch_rule == 'SSO':
-                indx  = np.argmin([order.prc_time[order.progress+1] for order in self.space])
+                indx  = np.argmin([ord.prc_time[ord.progress+1] \
+                                        if ord.progress+1 <= len(ord.prc_time) else sum(ord.prc_time[ord.progress:])\
+                                             for ord in self.space])
                 order = self.space[indx]
             elif self.dspch_rule == 'LSO':
-                indx  = np.argmax([order.prc_time[order.progress+1] for order in self.space])
+                indx  = np.argmax([ord.prc_time[ord.progress+1] \
+                                        if ord.progress+1 <= len(ord.prc_time) else sum(ord.prc_time[ord.progress:])\
+                                             for ord in self.space])
                 order = self.space[indx]
             elif self.dspch_rule == 'SPT+SSO':
-                indx  = np.argmin([sum(ord.prc_time[ord.progress:ord.progress+2]) for ord in self.space])
+                indx  = np.argmin([sum(ord.prc_time[ord.progress:ord.progress+2]) \
+                                        if ord.progress+2 <= len(ord.prc_time) else sum(ord.prc_time[ord.progress:])\
+                                             for ord in self.space])
                 order = self.space[indx]
             elif self.dspch_rule == 'LPT+LSO':
-                indx  = np.argmax([sum(ord.prc_time[ord.progress:ord.progress+2]) for ord in self.space])
+                indx  = np.argmax([sum(ord.prc_time[ord.progress:ord.progress+2]) \
+                                        if ord.progress+2 <= len(ord.prc_time) else sum(ord.prc_time[ord.progress:])\
+                                             for ord in self.space])
                 order = self.space[indx]
             else:
-                raise "[ERROR #1]"
+                print(self.dspch_rule)
+                print("[ERROR #1]")
+                raise NotImplementedError
                 # elif self.dspch_rule == 'STPT':
                 #     indx  = np.argmin([sum(order.prc_time) for order in self.space])
                 # elif self.dspch_rule == 'LTPT':
                 #     indx  = np.argmax([sum(order.prc_time) for order in self.space])
-
-            
+                
+            #send order to machine
+            self.machine.process_order(order)
+            #remove order form queue
+            self.space.remove(order)
+        else:
+            order = self.space[0]
             #send order to machine
             self.machine.process_order(order)
             #remove order form queue
