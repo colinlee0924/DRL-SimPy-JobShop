@@ -484,22 +484,25 @@ class Factory:
         return reward
 
     def render(self, terminal, motion_speed=0.5):
-        if len(self._render_his) % 5 == 0:
-            plt.ioff()
-            plt.close('all')
+        # if len(self._render_his) % 5 == 0:
+            # plt.ioff()
+            # plt.close('all')
 
         queues_status = {}
         for id, queue in self.queues.items():
             queues_status[id] = [str(order) for order in queue.space]
         print(f'\n (time: {self.env.now}) - Status of queues:\n {queues_status}')
 
-        plt.ion()
-        plt.pause(motion_speed)
-        fig = self.gantt_plot.draw_gantt(self.env.now)
-        self._render_his.append(fig)
+        # plt.ion()
+        # plt.pause(motion_speed)
+        # fig = self.gantt_plot.draw_gantt(self.env.now)
+        # self._render_his.append(fig)
         if terminal:
+            plt.ion()
+            plt.pause(motion_speed)
+            fig = self.gantt_plot.draw_gantt(self.env.now)
             plt.ioff()
-            trm_frame = [plt.close(fig) for fig in self._render_his[:-1]]
+            # trm_frame = [plt.close(fig) for fig in self._render_his[:-1]]
             plt.show()
     
     def close(self):
