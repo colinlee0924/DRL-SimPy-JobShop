@@ -483,27 +483,31 @@ class Factory:
         self.last_util = current_util
         return reward
 
-    def render(self, terminal, motion_speed=0.5):
-        # if len(self._render_his) % 5 == 0:
-            # plt.ioff()
-            # plt.close('all')
-
-        queues_status = {}
-        for id, queue in self.queues.items():
-            queues_status[id] = [str(order) for order in queue.space]
-        print(f'\n (time: {self.env.now}) - Status of queues:\n {queues_status}')
-
-        # plt.ion()
-        # plt.pause(motion_speed)
-        # fig = self.gantt_plot.draw_gantt(self.env.now)
-        # self._render_his.append(fig)
-        if terminal:
+    def render(self, terminal=False, testing=False, motion_speed=0.1):
+        if testing:
+            if len(self._render_his) % 3 == 0:
+                plt.ioff()
+                plt.close('all')
+            # queues_status = {}
+            # for id, queue in self.queues.items():
+                # queues_status[id] = [str(order) for order in queue.space]
+            # print(f'\n (time: {self.env.now}) - Status of queues:\n {queues_status}')
             plt.ion()
             plt.pause(motion_speed)
             fig = self.gantt_plot.draw_gantt(self.env.now)
-            plt.ioff()
-            # trm_frame = [plt.close(fig) for fig in self._render_his[:-1]]
-            plt.show()
+            self._render_his.append(fig)
+
+            if terminal:
+                plt.ioff()
+                trm_frame = [plt.close(fig) for fig in self._render_his[:-1]]
+                plt.show()
+        else:
+            if terminal:
+                plt.ion()
+                plt.pause(motion_speed)
+                fig = self.gantt_plot.draw_gantt(self.env.now)
+                plt.ioff()
+                plt.show()
     
     def close(self):
         plt.ioff()
@@ -587,12 +591,12 @@ if __name__ == '__main__':
             action = int(input(' * Choose an action from {0,1}: '))
 
         next_state, reward, done, _ = fac.step(action)
-        print(f'({fac.env.now})')
-        print(f'[{state[-1]},\n {action}, {reward},\n {next_state[-1]}]')
-        print()
+        # print(f'({fac.env.now})')
+        # print(f'[{state[-1]},\n {action}, {reward},\n {next_state[-1]}]')
+        # print()
         state = next_state
 
-        fac.render(done)
+        fac.render(testing=True, terminal=done)
 
     
     # fac.render(done)

@@ -43,7 +43,9 @@ class Gantt:
             color.append(colors[int(j)])
 
         # plt.barh(y = y, width = width, height = 0.5, color=color,left = left, align = 'center',alpha = 0.6)
-        ax.barh(y = y, width = width, height = 0.5, color=color,left = left, align = 'center',alpha = 0.6)
+        ax.barh(y     = y    , width     = width , height    = 0.5     ,\
+                color = color, left      = left  , align     = 'center',\
+                alpha = 0.6  , edgecolor ='black', linewidth = 1)
         #add text
         for i in range(len(self.gantt_data['MC'])):
             text_x = self.gantt_data['Start time'][i] + self.gantt_data['Process time'][i]/2
