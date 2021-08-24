@@ -22,7 +22,7 @@ from utils.GanttPlot      import Gantt
 
 INFINITY  = float('inf')
 OPTIMAL_L = 55
-ACTION    = 5
+ACTION    = 10 #5
 
 #entity
 class Order:
@@ -110,13 +110,27 @@ class Dispatcher:
         if action == 0:
             dspch_rule = 'FIFO'
         elif action == 1:
-            dspch_rule = 'SPT'
+            dspch_rule = 'LIFO'
         elif action == 2:
-            dspch_rule = 'LPT'
+            dspch_rule = 'SPT'
         elif action == 3:
-            dspch_rule = 'SSO'
+            dspch_rule = 'LPT'
         elif action == 4:
+            dspch_rule = 'TWKR'
+        elif action == 5:
+            dspch_rule = 'MWKR'
+        elif action == 6:
+            dspch_rule = 'SSO'
+        elif action == 7:
             dspch_rule = 'LSO'
+        elif action == 8:
+            dspch_rule = 'SPT+SSO'
+        elif action == 9:
+            dspch_rule = 'LPT+LSO'
+        # elif action == 9:
+        #     dspch_rule = 'STPT' #shortest total processing time
+        # elif action == 10:
+        #     dspch_rule = 'LTPT' #longest total processing time
 
         #set the dispatch rule of each queue
         for _, queue in self.fac.queues.items():
@@ -176,20 +190,31 @@ class Queue:
             #get oder in queue
             if self.dspch_rule == 'FIFO':
                 order = self.space[0]
-            elif self.dspch_rule == 'SPT':
-                indx  = np.argmin([order.prc_time[order.progress] for order in self.space])
-                order = self.space[indx]
-            elif self.dspch_rule == 'LPT':
-                indx  = np.argmax([order.prc_time[order.progress] for order in self.space])
-                order = self.space[indx]
-            elif self.dspch_rule == 'SSO':
-                indx  = np.argmin([sum(order.prc_time) for order in self.space])
-                order = self.space[indx]
-            elif self.dspch_rule == 'LSO':
-                indx  = np.argmax([sum(order.prc_time) for order in self.space])
-                order = self.space[indx]
+            elif self.dspch_rule == 'LIFO':
+                order = self.space[-1]
             else:
-                raise "[ERROR] 001"
+                if self.dspch_rule == 'SPT':
+                    indx  = np.argmin([order.prc_time[order.progress] for order in self.space])
+                elif self.dspch_rule == 'LPT':
+                    indx  = np.argmax([order.prc_time[order.progress] for order in self.space])
+                elif self.dspch_rule == 'LWKR':
+                    indx  = np.argmin([sum(ord.prc_time[ord.progress:]) for ord in self.space])
+                elif self.dspch_rule == 'MWKR':
+                    indx  = np.argmax([sum(ord.prc_time[ord.progress:]) for ord in self.space])
+                elif self.dspch_rule == 'SSO':
+                    indx  = np.argmin([order.prc_time[order.progress+1] for order in self.space])
+                elif self.dspch_rule == 'LSO':
+                    indx  = np.argmax([order.prc_time[order.progress+1] for order in self.space])
+                elif self.dspch_rule == 'SPT+SSO':
+                    indx  = np.argmin([sum(ord.prc_time[ord.progress:ord.progress+2]) for ord in self.space])
+                elif self.dspch_rule == 'LPT+LSO':
+                    indx  = np.argmax([sum(ord.prc_time[ord.progress:ord.progress+2]) for ord in self.space])
+                # elif self.dspch_rule == 'STPT':
+                #     indx  = np.argmin([sum(order.prc_time) for order in self.space])
+                # elif self.dspch_rule == 'LTPT':
+                #     indx  = np.argmax([sum(order.prc_time) for order in self.space])
+
+                order = self.space[indx]
             
             #send order to machine
             self.machine.process_order(order)
