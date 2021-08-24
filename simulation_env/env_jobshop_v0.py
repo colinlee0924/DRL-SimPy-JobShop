@@ -484,33 +484,32 @@ class Factory:
         self.last_util = current_util
         return reward
 
-    def render(self, terminal=False, testing=False, motion_speed=0.1):
+    def render(self, terminal=False, human_cntrl=False, motion_speed=0.1):
         plt.set_loglevel('WARNING') 
-        if True:
-        # if testing:
-        #     if len(self._render_his) % 3 == 0:
-        #         plt.ioff()
-        #         plt.close('all')
-        #     # queues_status = {}
-        #     # for id, queue in self.queues.items():
-        #         # queues_status[id] = [str(order) for order in queue.space]
-        #     # print(f'\n (time: {self.env.now}) - Status of queues:\n {queues_status}')
-        #     plt.ion()
-        #     plt.pause(motion_speed)
-        #     fig = self.gantt_plot.draw_gantt(self.env.now)
-        #     self._render_his.append(fig)
+        if human_cntrl:
+            if len(self._render_his) % 3 == 0:
+                plt.ioff()
+                plt.close('all')
+            # queues_status = {}
+            # for id, queue in self.queues.items():
+                # queues_status[id] = [str(order) for order in queue.space]
+            # print(f'\n (time: {self.env.now}) - Status of queues:\n {queues_status}')
+            plt.ion()
+            plt.pause(motion_speed)
+            fig = self.gantt_plot.draw_gantt(self.env.now)
+            self._render_his.append(fig)
 
-        #     if terminal:
-        #         plt.ioff()
-        #         trm_frame = [plt.close(fig) for fig in self._render_his[:-1]]
-        #         plt.show()
-        # else:
+            if terminal:
+                plt.ioff()
+                trm_frame = [plt.close(fig) for fig in self._render_his[:-1]]
+                plt.show()
+        else:
             if terminal:
                 plt.ion()
-                plt.pause(motion_speed)
                 fig = self.gantt_plot.draw_gantt(self.env.now)
-                plt.ioff()
-                plt.show()
+                plt.pause(motion_speed)
+                # plt.ioff()
+                # plt.show()
     
     def close(self):
         plt.ioff()
@@ -558,6 +557,7 @@ class Factory:
 
 
 if __name__ == '__main__':
+    import time
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows'   , None)
     pd.set_option('display.width'      , 300)
@@ -568,46 +568,51 @@ if __name__ == '__main__':
     if human_control == 'y':
         usr_interaction = True
 
+    replication = 3
+
     # read problem config
     opt_makespan = 55
     file_name    = 'job_info.xlsx'
     file_dir     = os.getcwd() + '/input_data'
     file_path    = os.path.join(file_dir, file_name)
 
-    # make environment
-    fac = Factory(6, 6, file_path, opt_makespan, log=False)
-    print('* Order Information: ')
-    print(fac.order_info)
-    print('')
+    for rep in range(replication):
+        # make environment
+        fac = Factory(6, 6, file_path, opt_makespan, log=False)
+        print(f'Rep #{rep}')
+        print('* Order Information: ')
+        print(fac.order_info)
+        print('')
 
-    state = fac.reset() #include the bulid function
-    done  = False
-    print(f'({fac.env.now})')
-    print(f'[{state[-1]}]')
-    print()
-    fac.render(done)
-    while not done:
-
-        if not usr_interaction:
-            action = 1
-        else:
-            action = int(input(' * Choose an action from {0,1}: '))
-
-        next_state, reward, done, _ = fac.step(action)
+        state = fac.reset() #include the bulid function
+        done  = False
         # print(f'({fac.env.now})')
-        # print(f'[{state[-1]},\n {action}, {reward},\n {next_state[-1]}]')
+        # print(f'[{state[-1]}]')
         # print()
-        state = next_state
+        fac.render(done)
+        while not done:
 
-        fac.render(testing=True, terminal=done)
+            if not usr_interaction:
+                action = rep % fac.dim_actions #1
+            else:
+                action = int(input(' * Choose an action from {0,1}: '))
 
-    
-    # fac.render(done)
-    # fac.close()
+            next_state, reward, done, _ = fac.step(action)
+            # print(f'({fac.env.now})')
+            # print(f'[{state[-1]},\n {action}, {reward},\n {next_state[-1]}]')
+            # print()
+            state = next_state
 
-    # print(fac.event_record)
-    print("============================================================")
-    print(fac.sink.order_statistic.sort_values(by = "id"))
-    print("============================================================")
-    print("Average flow time: {}".format(np.mean(fac.sink.order_statistic['flow_time'])))
-    print("Makespan = {}".format(fac.makespan))
+            fac.render(terminal=done, human_cntrl=usr_interaction)
+
+        
+        # fac.render(done)
+        time.sleep(0.5)
+        fac.close()
+
+        # print(fac.event_record)
+        print("============================================================")
+        print(fac.sink.order_statistic.sort_values(by = "id"))
+        print("============================================================")
+        print("Average flow time: {}".format(np.mean(fac.sink.order_statistic['flow_time'])))
+        print("Makespan = {}".format(fac.makespan))
