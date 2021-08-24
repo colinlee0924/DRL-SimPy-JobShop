@@ -101,7 +101,7 @@ def train(args, _env, agent, writer):
 
 
 def test(args, _env, agent, writer):
-    logging.info('* Start Testing')
+    logging.info('\n* Start Testing')
     env = _env
 
     action_space = env.action_space
@@ -128,17 +128,21 @@ def test(args, _env, agent, writer):
             state         = next_state
             total_reward += reward
 
-            env.render(done)
+            # env.render(done)
+            # env.render(terminal=done)
             # time.sleep(0.03)
 
             if done:
-                writer.add_scalar('Test/Episode Reward', total_reward, n_episode)
+                writer.add_scalar('Test/Episode_Reward', total_reward, n_episode)
                 rewards.append(total_reward)
                 makespans.append(env.makespan)
                 break
-    logging.info('  - Average Reward   =', np.mean(rewards))
-    logging.info('  - Average Makespan =', np.mean(makespans))
-    env.close()
+
+        time.sleep(0.1)
+        env.close()
+
+    logging.info(f'  - Average Reward   = {np.mean(rewards)}')
+    logging.info(f'  - Average Makespan = {np.mean(makespans)}')
 
 
 def main():
