@@ -77,7 +77,7 @@ def train(args, _env, agent, writer):
 
             if args.render and episode > args.render_episode:
                 env.render(done)
-                time.sleep(0.0082)
+                # time.sleep(0.0082)
 
 
             # Break & Record the performance at the end each episode
@@ -129,7 +129,7 @@ def test(args, _env, agent, writer):
             total_reward += reward
 
             env.render(done)
-            time.sleep(0.03)
+            # time.sleep(0.03)
 
             if done:
                 writer.add_scalar('Test/Episode Reward', total_reward, n_episode)

@@ -485,24 +485,26 @@ class Factory:
         return reward
 
     def render(self, terminal=False, testing=False, motion_speed=0.1):
-        if testing:
-            if len(self._render_his) % 3 == 0:
-                plt.ioff()
-                plt.close('all')
-            # queues_status = {}
-            # for id, queue in self.queues.items():
-                # queues_status[id] = [str(order) for order in queue.space]
-            # print(f'\n (time: {self.env.now}) - Status of queues:\n {queues_status}')
-            plt.ion()
-            plt.pause(motion_speed)
-            fig = self.gantt_plot.draw_gantt(self.env.now)
-            self._render_his.append(fig)
+        plt.set_loglevel('WARNING') 
+        if True:
+        # if testing:
+        #     if len(self._render_his) % 3 == 0:
+        #         plt.ioff()
+        #         plt.close('all')
+        #     # queues_status = {}
+        #     # for id, queue in self.queues.items():
+        #         # queues_status[id] = [str(order) for order in queue.space]
+        #     # print(f'\n (time: {self.env.now}) - Status of queues:\n {queues_status}')
+        #     plt.ion()
+        #     plt.pause(motion_speed)
+        #     fig = self.gantt_plot.draw_gantt(self.env.now)
+        #     self._render_his.append(fig)
 
-            if terminal:
-                plt.ioff()
-                trm_frame = [plt.close(fig) for fig in self._render_his[:-1]]
-                plt.show()
-        else:
+        #     if terminal:
+        #         plt.ioff()
+        #         trm_frame = [plt.close(fig) for fig in self._render_his[:-1]]
+        #         plt.show()
+        # else:
             if terminal:
                 plt.ion()
                 plt.pause(motion_speed)
