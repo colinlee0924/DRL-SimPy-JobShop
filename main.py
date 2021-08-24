@@ -35,7 +35,7 @@ def train(args, _env, agent, writer):
     env          = _env
     action_space = env.action_space
 
-    total_steps, epsilon, ewma_reward = 0, 1., 0.
+    cur_episode, epsilon, ewma_reward = 0, 1., 0.
 
     # Switch to train mode
     agent.train()
@@ -53,7 +53,7 @@ def train(args, _env, agent, writer):
             #     time.sleep(0.0082)
 
             # select action
-            if total_steps < args.warmup:
+            if cur_episode < args.warmup:
                 action = action_space.sample()
             else:
                 action = agent.select_action(state, epsilon, action_space)
@@ -67,13 +67,13 @@ def train(args, _env, agent, writer):
 
             # optimize the model
             loss = None
-            if total_steps >= args.warmup:
-                loss = agent.update(total_steps)
+            if cur_episode >= args.warmup:
+                loss = agent.update(cur_episode)
 
             # transit next_state --> current_state 
             state         = next_state
             total_reward += reward
-            total_steps  += 1
+            cur_episode  += 1
 
             if args.render and episode > args.render_episode:
                 env.render(done)
@@ -84,17 +84,19 @@ def train(args, _env, agent, writer):
             if done:
                 ewma_reward = 0.05 * total_reward + (1 - 0.05) * ewma_reward
                 writer.add_scalar('Train/Episode_Reward', total_reward,
-                                  total_steps)
-                writer.add_scalar('Train/Ewma_Reward', ewma_reward,
-                                  total_steps)
+                                  cur_episode)
                 writer.add_scalar('Train/Episode_Makespan', env.makespan,
-                                  total_steps)
+                                  cur_episode)
+                writer.add_scalar('Train/Episode_Epsilon', epsilon,
+                                  cur_episode)
+                writer.add_scalar('Train/Ewma_Reward', ewma_reward,
+                                  cur_episode)
                 if loss is not None:
                     writer.add_scalar('Train/Loss', loss,
-                                    total_steps)
+                                      cur_episode)
                 logging.info(
                     '  - Step: {}\tEpisode: {}\tLength: {:3d}\tTotal reward: {:.2f}\tEwma reward: {:.2f}\tMakespan: {:.2f}\tEpsilon: {:.3f}'
-                    .format(total_steps, episode, t, total_reward, ewma_reward, env.makespan,
+                    .format(cur_episode, episode, t, total_reward, ewma_reward, env.makespan,
                             epsilon))
                 break
     env.close()
