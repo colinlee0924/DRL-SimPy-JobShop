@@ -86,7 +86,7 @@ class Source:
             #wait for inter-arrival time
         for num in range(num_order):
             #To decide which order arrive first
-            indx       = np.argmin([o.prc_time[0] for o in _orders_list])
+            indx       = np.argmax([sum(o.prc_time) for o in _orders_list])
             order      = _orders_list[indx]
             order      = _orders_list[0]
             intvl_time = order.intvl_arr
