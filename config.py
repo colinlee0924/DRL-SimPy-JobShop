@@ -5,10 +5,11 @@ FILE_NAME    = 'job_info.xlsx'
 OPT_MAKESPAN = 55
 NUM_MACHINE  = 6
 NUM_JOB      = 6
+DIM_ACTION   = 5 #10
 
 ## arguments ##
 DEVICE  = 'cuda'
-MODEL   = 'model/dqn-ft06.pth'
+MODEL   = 'model/dqn-ft06-aciton-5.pth'
 LOG_DIR = 'log/dqn'
 # train
 WARMUP         = 10000
