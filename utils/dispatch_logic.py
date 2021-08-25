@@ -25,13 +25,14 @@ def get_order_from(queue_space, dspch_rule):
 			indx  = np.argmin(_get_cur_subsequence_prc_times(queue_space))
 		elif dspch_rule == 'LPT+LSO':
 			indx  = np.argmax(_get_cur_subsequence_prc_times(queue_space))
+		elif dspch_rule == 'STPT':
+		    indx  = np.argmin([sum(order.prc_time) for order in queue_space])
+		elif dspch_rule == 'LTPT':
+		    indx  = np.argmax([sum(order.prc_time) for order in queue_space])
 		else:
 			print(f'[ERROR #1] Here is not a {dspch_rule} rule in set')
 			raise NotImplementedError
-			# elif self.dspch_rule == 'STPT':
-			#     indx  = np.argmin([sum(order.prc_time) for order in self.space])
-			# elif self.dspch_rule == 'LTPT':
-			#     indx  = np.argmax([sum(order.prc_time) for order in self.space])
+			
 			
 		order = queue_space[indx]
 
