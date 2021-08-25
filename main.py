@@ -21,6 +21,7 @@ import torch.nn as nn
 
 from tensorboardX import SummaryWriter
 from datetime     import datetime as dt
+from tqdm         import tqdm
 
 from simulation_env.env_jobshop_v0 import Factory
 from dqn_agent                     import DQN
@@ -80,7 +81,6 @@ def train(args, _env, agent, writer):
                 env.render(done)
                 # time.sleep(0.0082)
 
-
             # Break & Record the performance at the end each episode
             if done:
                 ewma_reward = 0.05 * total_reward + (1 - 0.05) * ewma_reward
@@ -109,18 +109,18 @@ def test(args, _env, agent, writer):
 
     action_space = env.action_space
     epsilon      = args.test_epsilon
-    seeds        = (args.seed + i for i in range(10))
+    seeds        = [args.seed + i for i in range(10)]
     rewards      = []
     makespans    = []
 
-    for n_episode, seed in enumerate(seeds):
+    n_episode   = 0
+    seed_loader = tqdm(seeds)
+    for seed in seed_loader:
+        n_episode   += 1
         total_reward = 0
         # env.seed(seed)
         state = env.reset()
-        done = False
         for t in itertools.count(start=1):
-            # env.render(done)
-            # time.sleep(0.03)
 
             #action = agent.select_action(state, epsilon, action_space)
             action = agent.select_best_action(state)
@@ -132,8 +132,7 @@ def test(args, _env, agent, writer):
             total_reward += reward
 
             # env.render(done)
-            # env.render(terminal=done)
-            # time.sleep(0.03)
+            env.render(terminal=done)
 
             if done:
                 writer.add_scalar('Test/Episode_Reward', total_reward, n_episode)
@@ -141,7 +140,6 @@ def test(args, _env, agent, writer):
                 makespans.append(env.makespan)
                 break
 
-        time.sleep(0.1)
         env.close()
 
     logging.info(f'  - Average Reward   = {np.mean(rewards)}')
