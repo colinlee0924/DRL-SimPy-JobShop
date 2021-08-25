@@ -1,7 +1,12 @@
 # file name : action_map.py
+import sys
+if '..' not in sys.path:
+    sys.path.append('..')
 
-dim_actions = 10
+import config
+
 ACTION_MAP  = {}
+dim_actions = config.DIM_ACTION
 
 for action in range(dim_actions):
     if action == 0:
@@ -24,5 +29,9 @@ for action in range(dim_actions):
         dspch_rule = 'SPT+SSO'
     elif action == 9:
         dspch_rule = 'LPT+LSO'
+    elif action == 10:
+        dspch_rule = 'STPT'
+    elif action == 11:
+        dspch_rule = 'LTPT'
     
     ACTION_MAP[action] = dspch_rule
