@@ -13,12 +13,14 @@ if '..' not in sys.path:
 
 import time
 import simpy
-import numpy             as np
-import pandas            as pd
-import matplotlib.pyplot as plt
+import numpy                as np
+import pandas               as pd
+import matplotlib.pyplot    as plt
+import utils.dispatch_logic as dp_rule
 
 from matplotlib.animation import FuncAnimation
 from utils.GanttPlot      import Gantt
+
 
 INFINITY  = float('inf')
 OPTIMAL_L = 55
@@ -82,9 +84,10 @@ class Source:
 
             #wait for inter-arrival time
         for num in range(num_order):
-            #TO decide which order arrive first
+            #To decide which order arrive first
             indx       = np.argmin([o.prc_time[0] for o in _orders_list])
             order      = _orders_list[indx]
+            order      = _orders_list[0]
             intvl_time = order.intvl_arr
             _orders_list.remove(order)
 
@@ -108,35 +111,14 @@ class Dispatcher:
         self.fac = fac
         self.env = fac.env
 
-    def dispatch_by(self, action):
-        if action == 0:
-            dspch_rule = 'FIFO'
-        elif action == 1:
-            dspch_rule = 'LIFO'
-        elif action == 2:
-            dspch_rule = 'SPT'
-        elif action == 3:
-            dspch_rule = 'LPT'
-        elif action == 4:
-            dspch_rule = 'LWKR'
-        elif action == 5:
-            dspch_rule = 'MWKR'
-        elif action == 6:
-            dspch_rule = 'SSO'
-        elif action == 7:
-            dspch_rule = 'LSO'
-        elif action == 8:
-            dspch_rule = 'SPT+SSO'
-        elif action == 9:
-            dspch_rule = 'LPT+LSO'
-        # elif action == 9:
-        #     dspch_rule = 'STPT' #shortest total processing time
-        # elif action == 10:
-        #     dspch_rule = 'LTPT' #longest total processing time
+        # reference for mapping acton number to dispatching rule
+        from simulation_env.action_map import ACTION_MAP
+        self.action_map = ACTION_MAP
 
-        #set the dispatch rule of each queue
+    def dispatch_by(self, action):
+        # set the dispatch rule of each queue
         for _, queue in self.fac.queues.items():
-            queue.dspch_rule = dspch_rule
+            queue.dspch_rule = self.action_map[action]
 
 
 class Queue:
@@ -182,61 +164,14 @@ class Queue:
 
     def get_order(self):
         if len(self.space) > 1:
-            print()
-            print(self.dspch_rule)
             yield self.fac.dict_dspch_evt[self.id]
-
             #################
             #    TO DO:     
             #################
             #set an event for resuming after receive an action
             self.fac.dict_dspch_evt[self.id] = self.env.event()
             #get oder in queue
-            if self.dspch_rule == 'FIFO':
-                order = self.space[0]
-            elif self.dspch_rule == 'LIFO':
-                order = self.space[-1]
-            elif self.dspch_rule == 'SPT':
-                indx  = np.argmin([order.prc_time[order.progress] for order in self.space])
-                order = self.space[indx]
-            elif self.dspch_rule == 'LPT':
-                indx  = np.argmax([order.prc_time[order.progress] for order in self.space])
-                order = self.space[indx]
-            elif self.dspch_rule == 'LWKR':
-                indx  = np.argmin([sum(ord.prc_time[ord.progress:]) for ord in self.space])
-                order = self.space[indx]
-            elif self.dspch_rule == 'MWKR':
-                indx  = np.argmax([sum(ord.prc_time[ord.progress:]) for ord in self.space])
-                order = self.space[indx]
-            elif self.dspch_rule == 'SSO':
-                indx  = np.argmin([ord.prc_time[ord.progress+1] \
-                                        if ord.progress+1 <= len(ord.prc_time) else sum(ord.prc_time[ord.progress:])\
-                                             for ord in self.space])
-                order = self.space[indx]
-            elif self.dspch_rule == 'LSO':
-                indx  = np.argmax([ord.prc_time[ord.progress+1] \
-                                        if ord.progress+1 <= len(ord.prc_time) else sum(ord.prc_time[ord.progress:])\
-                                             for ord in self.space])
-                order = self.space[indx]
-            elif self.dspch_rule == 'SPT+SSO':
-                indx  = np.argmin([sum(ord.prc_time[ord.progress:ord.progress+2]) \
-                                        if ord.progress+2 <= len(ord.prc_time) else sum(ord.prc_time[ord.progress:])\
-                                             for ord in self.space])
-                order = self.space[indx]
-            elif self.dspch_rule == 'LPT+LSO':
-                indx  = np.argmax([sum(ord.prc_time[ord.progress:ord.progress+2]) \
-                                        if ord.progress+2 <= len(ord.prc_time) else sum(ord.prc_time[ord.progress:])\
-                                             for ord in self.space])
-                order = self.space[indx]
-            else:
-                print(self.dspch_rule)
-                print("[ERROR #1]")
-                raise NotImplementedError
-                # elif self.dspch_rule == 'STPT':
-                #     indx  = np.argmin([sum(order.prc_time) for order in self.space])
-                # elif self.dspch_rule == 'LTPT':
-                #     indx  = np.argmax([sum(order.prc_time) for order in self.space])
-                
+            order = dp_rule.get_order_from(self.space, self.dspch_rule)
             #send order to machine
             self.machine.process_order(order)
             #remove order form queue
@@ -439,9 +374,6 @@ class Factory:
         self.tb_proc_status = np.zeros((num_job, num_machine))
         self.opt_makespan   = opt_makespan
 
-        #[Gantt]
-        self.gantt_plot = Gantt()
-
         #[RL] attributes for the Environment of RL
         self.dim_actions      = ACTION
         self.dim_observations = (3, self.num_job, self.num_job)
@@ -485,6 +417,9 @@ class Factory:
 
         #terminal event
         self.terminal   = self.env.event()
+
+        #[Gantt]
+        self.gantt_plot = Gantt()
 
     def get_utilization(self):
         #compute average utiliztion of machines
@@ -536,9 +471,9 @@ class Factory:
         self.last_util = current_util
         return reward
 
-    def render(self, terminal=False, human_cntrl=False, motion_speed=0.1):
+    def render(self, terminal=False, use_mode=False, motion_speed=0.1):
         plt.set_loglevel('WARNING') 
-        if human_cntrl:
+        if use_mode:
             if len(self._render_his) % 3 == 0:
                 plt.ioff()
                 plt.close('all')
@@ -620,7 +555,7 @@ if __name__ == '__main__':
     if human_control == 'y':
         usr_interaction = True
 
-    replication = 3
+    replication = 10
 
     # read problem config
     opt_makespan = 55
@@ -631,6 +566,7 @@ if __name__ == '__main__':
     for rep in range(replication):
         # make environment
         fac = Factory(6, 6, file_path, opt_makespan, log=False)
+        print('')
         print(f'Rep #{rep}')
         print('* Order Information: ')
         print(fac.order_info)
@@ -645,7 +581,7 @@ if __name__ == '__main__':
         while not done:
 
             if not usr_interaction:
-                action = rep % fac.dim_actions #1
+                action = rep % fac.dim_actions #+ 1
             else:
                 action = int(input(' * Choose an action from {0,1}: '))
 
@@ -655,12 +591,12 @@ if __name__ == '__main__':
             # print()
             state = next_state
 
-            fac.render(terminal=done, human_cntrl=usr_interaction)
+            fac.render(terminal=done, use_mode=usr_interaction)
 
         
-        # fac.render(done)
-        time.sleep(0.5)
-        fac.close()
+        # # fac.render(done)
+        # time.sleep(0.5)
+        # fac.close()
 
         # print(fac.event_record)
         print("============================================================")
