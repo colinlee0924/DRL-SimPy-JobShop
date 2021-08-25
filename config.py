@@ -8,7 +8,7 @@ NUM_JOB      = 6
 
 ## arguments ##
 DEVICE  = 'cuda'
-MODEL   = 'model/dqn.pth'
+MODEL   = 'model/dqn-ft06.pth'
 LOG_DIR = 'log/dqn'
 # train
 WARMUP         = 10000
