@@ -21,10 +21,11 @@ import utils.dispatch_logic as dp_rule
 from matplotlib.animation import FuncAnimation
 from utils.GanttPlot      import Gantt
 
+import config
 
-INFINITY  = float('inf')
-OPTIMAL_L = 55
-ACTION    = 10 #5
+INFINITY   = float('inf')
+OPTIMAL_L  = config.OPT_MAKESPAN
+DIM_ACTION = config.DIM_ACTION
 
 np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning) 
 
@@ -375,7 +376,7 @@ class Factory:
         self.opt_makespan   = opt_makespan
 
         #[RL] attributes for the Environment of RL
-        self.dim_actions      = ACTION
+        self.dim_actions      = DIM_ACTION
         self.dim_observations = (3, self.num_job, self.num_job)
         self.observations     = np.zeros(self.dim_observations)
         self.actions          = np.arange(self.dim_actions)
