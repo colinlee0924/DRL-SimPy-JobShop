@@ -1,28 +1,28 @@
-from itertools import permutations as pm
+# file name : action_map.py
 
-NUM_RULE   = 2
-NUM_MACINE = 6
-ACTION_MAP = {
-               1: ['FIFO', 'FIFO', 'FIFO', 'FIFO', 'FIFO', 'FIFO'],
-               2: ['FIFO', 'FIFO', 'FIFO', 'FIFO', 'FIFO', 'SPT'],
-               3: ['FIFO', 'FIFO', 'FIFO', 'FIFO', 'SPT' , 'FIFO'],
-               4: ['FIFO', 'FIFO', 'FIFO', 'SPT' , 'FIFO', 'FIFO'],
-               5: ['FIFO', 'FIFO', 'SPT' , 'FIFO', 'FIFO', 'FIFO'],
-               6: ['FIFO', 'SPT' , 'FIFO', 'FIFO', 'FIFO', 'FIFO'],
-               7: ['SPT' , 'FIFO', 'FIFO', 'FIFO', 'FIFO', 'FIFO'],
-              }
+dim_actions = 10
+ACTION_MAP  = {}
 
-# def permute(lst_elements):
-#     lst_permuted = []
-#     for res in pm(lst_elements, len(lst_elements)):
-#         lst_permuted.append(list(res))
-
-#     return lst_permuted
-
-# ACTION_MAP = {}
-
-# for action in range(NUM_RULE ** NUM_MACINE):
-#     ACTION_MAP[action] = ['FIFO', 'FIFO', 'FIFO', 'FIFO', 'FIFO', 'FIFO']
-#     machine = 0
-#     if action > 0 and action <= 6:
-#         ACTION_MAP[action][machine] = 'FIFO'
+for action in range(dim_actions):
+    if action == 0:
+        dspch_rule = 'FIFO'
+    elif action == 1:
+        dspch_rule = 'LIFO'
+    elif action == 2:
+        dspch_rule = 'SPT'
+    elif action == 3:
+        dspch_rule = 'LPT'
+    elif action == 4:
+        dspch_rule = 'LWKR'
+    elif action == 5:
+        dspch_rule = 'MWKR'
+    elif action == 6:
+        dspch_rule = 'SSO'
+    elif action == 7:
+        dspch_rule = 'LSO'
+    elif action == 8:
+        dspch_rule = 'SPT+SSO'
+    elif action == 9:
+        dspch_rule = 'LPT+LSO'
+    
+    ACTION_MAP[action] = dspch_rule
