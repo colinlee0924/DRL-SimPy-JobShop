@@ -99,6 +99,10 @@ def train(args, _env, agent, writer):
                     '  - Step: {}\tEpisode: {}\tLength: {:3d}\tTotal reward: {:.2f}\tEwma reward: {:.2f}\tMakespan: {:.2f}\tEpsilon: {:.3f}'
                     .format(total_step, episode, t, total_reward, ewma_reward, env.makespan,
                             epsilon))
+
+                # Check the scheduling result
+                fig = env.gantt_plot.draw_gantt(env.makespan)
+                writer.add_figure('Train-Episode/Gantt_Chart', fig, episode)
                 break
     env.close()
 
@@ -138,6 +142,10 @@ def test(args, _env, agent, writer):
                 writer.add_scalar('Test/Episode_Reward', total_reward, n_episode)
                 rewards.append(total_reward)
                 makespans.append(env.makespan)
+
+                # Check the scheduling result
+                fig = env.gantt_plot.draw_gantt(env.makespan)
+                writer.add_figure('Test/Gantt_Chart', fig, n_episode)
                 break
 
         env.close()
