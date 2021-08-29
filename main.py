@@ -16,8 +16,9 @@ import logging
 import argparse
 import itertools
 
-import numpy    as np
-import torch.nn as nn
+import numpy             as np
+import torch.nn          as nn
+import matplotlib.pyplot as plt
 
 from tensorboardX import SummaryWriter
 from datetime     import datetime as dt
@@ -29,6 +30,7 @@ from dqn_agent                     import DQN
 import pdb
 
 logging.basicConfig(level=logging.DEBUG)
+plt.set_loglevel('WARNING') 
 # -----------------------------------------------
 
 def train(args, _env, agent, writer):
