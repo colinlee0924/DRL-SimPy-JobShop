@@ -30,7 +30,7 @@ class Net(nn.Module):
         self.flatten = nn.Flatten()
 
         # check the output of cnn, which is [fc1_dims]
-        self.fcn_inputs_length = self.flatten(state_dim)
+        self.fcn_inputs_length = torch.zeros(1, *state_dim).flatten()
 
         # fully connected layers
         self.fc1 =  nn.Linear(self.fcn_inputs_length, hidden_dim)
