@@ -19,7 +19,8 @@ import torch.nn as nn
 from tensorboardX import SummaryWriter
 from datetime     import datetime as dt
 
-from model.NetworkModel import Net
+# from model.NetworkModel import Net
+from model.FullyNetwork import Net
 from utils.MemeryBuffer import ReplayMemory
 
 import pdb
@@ -29,12 +30,19 @@ logging.basicConfig(level=logging.DEBUG)
 
 class DQN:
     def __init__(self, dim_state, dim_action, args):
-        self._behavior_net = Net(dim_state, dim_action).to(args.device)
-        self._target_net   = Net(dim_state, dim_action).to(args.device)
+        ## config ##
+        self.device      = torch.device(args.device)
+        self.batch_size  = args.batch_size
+        self.gamma       = args.gamma
+        self.freq        = args.freq
+        self.target_freq = args.target_freq
+
+        self._behavior_net = Net(dim_state, dim_action).to(self.device)
+        self._target_net   = Net(dim_state, dim_action).to(self.device)
         # -------------------------------------------
         # initialize target network
         # -------------------------------------------
-        self._target_net.load_state_dict(self._behavior_net.state_dict())
+        self._target_net.load_state_dict(self._behavior_net.state_dict())#, map_location=self.device)
 
         self._optimizer = torch.optim.RMSprop(
                             self._behavior_net.parameters(), 
@@ -43,13 +51,6 @@ class DQN:
         self._criteria  = nn.MSELoss()
         # memory
         self._memory    = ReplayMemory(capacity=args.capacity)
-
-        ## config ##
-        self.device      = args.device
-        self.batch_size  = args.batch_size
-        self.gamma       = args.gamma
-        self.freq        = args.freq
-        self.target_freq = args.target_freq
 
     def select_best_action(self, state):
         '''
@@ -138,11 +139,11 @@ class DQN:
             }, model_path)
 
     def load(self, model_path, checkpoint=False):
-        model = torch.load(model_path)
-        self._behavior_net.load_state_dict(model['behavior_net'])
+        model = torch.load(model_path, map_location=self.device)
+        self._behavior_net.load_state_dict(model['behavior_net'])#, map_location=self.device)
         if checkpoint:
-            self._target_net.load_state_dict(model['target_net'])
-            self._optimizer.load_state_dict(model['optimizer'])
+            self._target_net.load_state_dict(model['target_net'])#, map_location=self.device)
+            self._optimizer.load_state_dict(model['optimizer'])#  , map_location=self.device)
 
     def train(self):
         self._behavior_net.train()
