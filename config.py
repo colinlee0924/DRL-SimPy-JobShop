@@ -9,17 +9,19 @@ DIM_ACTION   = 12 #10
 
 ## arguments ##
 DEVICE  = 'cuda'
-MODEL   = 'model/dqn-ft06-aciton-12.pth'
+MODEL   = 'model/dqn-ft06-aciton-12-spt.pth'
 LOG_DIR = 'log/dqn'
 # train
-WARMUP         = 10000
-EPISODE        = 1200
+EPISODE        = 40000
 CAPACITY       = 10000
-BATCH_SIZE     = 128
+WARMUP         = CAPACITY / 2
+BATCH_SIZE     = 64 #128
 LEARNING_R     = .0005
 GAMMA          = .99
-EPS_DECAY      = .9982
+EPS_DECAY      = .99982
+EPS_MAX        =  1
 EPS_MIN        = .1
+EPS_PERIOD     = EPISODE / 4
 FREQ           = 4
 TARGET_FREQ	   = 500
 RENDER_EPISODE = 900

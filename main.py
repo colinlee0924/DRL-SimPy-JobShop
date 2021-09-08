@@ -61,7 +61,7 @@ def train(args, _env, agent, writer):
                 action = action_space.sample()
             else:
                 action = agent.select_action(state, epsilon, action_space)
-                epsilon = max(epsilon * args.eps_decay, args.eps_min)
+                # epsilon = max(epsilon * args.eps_decay, args.eps_min)
 
             # execute action
             next_state, reward, done, _ = env.step(action)
@@ -106,6 +106,9 @@ def train(args, _env, agent, writer):
                 fig = env.gantt_plot.draw_gantt(env.makespan)
                 writer.add_figure('Train-Episode/Gantt_Chart', fig, episode)
                 break
+
+    delta_eps = (args.eps_max - args.eps_min) / args.eps_period
+    epsilon   = max(epsilon + delta_eps, args.eps_min)
     env.close()
 
 
@@ -170,7 +173,9 @@ def main():
     parser.add_argument('--batch_size'    , default=config.BATCH_SIZE    , type=int)
     parser.add_argument('--lr'            , default=config.LEARNING_R    , type=float)
     parser.add_argument('--eps_decay'     , default=config.EPS_DECAY     , type=float)
+    parser.add_argument('--eps_max'       , default=config.EPS_MAX       , type=float)
     parser.add_argument('--eps_min'       , default=config.EPS_MIN       , type=float)
+    parser.add_argument('--eps_period'    , default=config.EPS_PERIOD    , type=float)
     parser.add_argument('--gamma'         , default=config.GAMMA         , type=float)
     parser.add_argument('--freq'          , default=config.FREQ          , type=int)
     parser.add_argument('--target_freq'   , default=config.TARGET_FREQ   , type=int)
