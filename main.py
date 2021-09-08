@@ -24,7 +24,7 @@ from tensorboardX import SummaryWriter
 from datetime     import datetime as dt
 from tqdm         import tqdm
 
-from simulation_env.env_jobshop_v0 import Factory
+from simulation_env.env_jobshop_v1 import Factory
 from dqn_agent                     import DQN
 
 import pdb
