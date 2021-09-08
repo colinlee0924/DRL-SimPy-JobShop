@@ -13,7 +13,7 @@ MODEL   = 'model/dqn-ft06-aciton-12-spt.pth'
 LOG_DIR = 'log/dqn'
 # train
 EPISODE        = 40000
-CAPACITY       = 10000
+CAPACITY       = int(5000)
 WARMUP         = CAPACITY / 2
 BATCH_SIZE     = 64 #128
 LEARNING_R     = .0005
