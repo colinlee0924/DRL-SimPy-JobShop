@@ -70,6 +70,12 @@ class Net(nn.Module):
             self.conv_2, self.bn_64, self.relu
         )
 
+        self.conv_1_est = nn.Conv2d(1 , 32, kernel_size=3, stride=1)
+        self.cnn_est    = nn.Sequential(
+            self.conv_1_est, self.bn_32, self.relu, #,
+            self.conv_2    , self.bn_64, self.relu
+        )
+
         # check the output of cnn, which is [fc1_dims]
         self.cnn_outputs_len_1 = self.cnn_out_dim(state_dim[0])
         self.cnn_outputs_len_2 = self.cnn_out_dim(state_dim[1])
