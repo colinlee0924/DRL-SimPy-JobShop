@@ -77,8 +77,8 @@ class Net(nn.Module):
         )
 
         # check the output of cnn, which is [fc1_dims]
-        self.cnn_outputs_len_1 = self.cnn_out_dim(state_dim[0])
-        self.cnn_outputs_len_2 = self.cnn_out_dim(state_dim[1])
+        self.cnn_outputs_len_1 = self.cnn_out_dim_1(state_dim[0])
+        self.cnn_outputs_len_2 = self.cnn_out_dim_2(state_dim[1])
 
         # fully connected layers
         self.fc1 =  nn.Linear(self.fcn_inputs_length, hidden_dim)
@@ -97,7 +97,7 @@ class Net(nn.Module):
         '''
 
         cnn_out_1   = self.cnn(x[0])
-        cnn_out_2   = self.cnn(x[1])
+        cnn_out_2   = self.cnn_est(x[1])
         cnn_out_1   = cnn_out_1.reshape(-1, self.cnn_outputs_len_1)
         cnn_out_2   = cnn_out_2.reshape(-1, self.cnn_outputs_len_2)
         fcn_input_1 = self.flatten(cnn_out_1)
@@ -106,7 +106,11 @@ class Net(nn.Module):
         actions     = self.fcn(fcn_input)
         return actions
 
-    def cnn_out_dim(self, input_dims):
+    def cnn_out_dim_1(self, input_dims):
         return self.cnn(torch.zeros(1, *input_dims)
                        ).flatten().shape[0]
+
+    def cnn_out_dim_2(self, input_dims):
+        return self.cnn_est(torch.zeros(1, *input_dims)
+                           ).flatten().shape[0]
 
