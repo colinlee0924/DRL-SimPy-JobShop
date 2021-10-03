@@ -20,7 +20,8 @@ from tensorboardX import SummaryWriter
 from datetime     import datetime as dt
 
 # from model.NetworkModel import Net
-from model.FullyNetwork import Net
+from model.ESTModel     import Net
+# from model.FullyNetwork import Net
 from utils.MemeryBuffer import ReplayMemory
 
 import pdb
