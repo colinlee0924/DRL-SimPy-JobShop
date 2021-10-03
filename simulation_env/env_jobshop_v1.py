@@ -8,6 +8,7 @@
 #
 import os
 import sys
+import logging
 if '..' not in sys.path:
     sys.path.append('..')
 
@@ -39,6 +40,7 @@ class Order:
         self.prc_time  = prc_time
         self.rls_time  = rls_time
         self.intvl_arr = intvl_arr
+        self.arr_time  = rls_time
 
         self.progress = 0
 
@@ -85,9 +87,10 @@ class Source:
 
             _orders_list.append(_order)
 
+        # print(f'{[str(order) for order in _orders_list]}')
 
         for num in range(num_order):
-            #To decide which order arrive first
+            # To decide which order arrive first
             order = dp_rule.get_order_from(_orders_list, self.rls_rule)
             # indx       = np.argmax([sum(o.prc_time) for o in _orders_list])
             # order      = _orders_list[indx]
@@ -95,16 +98,24 @@ class Source:
             intvl_time = order.intvl_arr
             _orders_list.remove(order)
 
-            #wait for inter-arrival time
+            # wait for inter-arrival time
             yield self.env.timeout(intvl_time)
-            #log for tracing
+            # log for tracing
             if self.fac.log:
                 print(f"    ({self.env.now}) {order} released")
-            #send order to queue
+            # update est_table
+            row_job                     = order.id - 1
+            jat                         = self.env.now
+            self.fac.tb_est[row_job][3] = jat
+            # send order to queue
             target = int(order.routing[order.progress])
             self.queues[target].order_arrive(order)
-            #update statistics
+            # update statistics
             self.num_generated += 1
+
+        if self.rls_rule == 'LIFO':
+            for id, queue in self.queues.items():
+                queue.space.reverse()
 
 
 #################
@@ -144,8 +155,9 @@ class Queue:
         self.machine = self.fac.machines[self.id]
 
     def order_arrive(self, order):
-        machine_idle  = self.machine.status == 'idle'
-        none_in_space = len(self.space) == 0
+        order.arr_time = self.env.now
+        machine_idle   = self.machine.status == 'idle'
+        none_in_space  = len(self.space) == 0
         if machine_idle and none_in_space:
             self.machine.process_order(order)
         else:
@@ -217,9 +229,44 @@ class Machine:
     def process_order(self, order):
         #change status
         self.status = order
+        # [est_table] update ect with (ect = now + proc_time)
+        tb_est, tb_mat     = self.fac.tb_est, self.fac.tb_mat
+        row_job            = order.id - 1
+        ect                = self.env.now + tb_est[row_job][2]
+        next_progress      = order.progress + 1
+        bool_job_finished  = (next_progress >= self.fac.num_machine)
+        if bool_job_finished:
+            tb_est[row_job] = np.ones(7) * (-1)
+        else:
+            next_target        = int(order.routing[next_progress])
+            tb_est[row_job][2] = order.prc_time[next_progress]
+            tb_est[row_job][1] = int(order.routing[next_progress])
+            tb_est[row_job][0] += 1.
+            tb_est[row_job][3] = ect
+            tb_est[row_job][4] = tb_mat[next_target]
+            tb_est[row_job][6] = ect
+        # update mat_table and info about mat
+        tb_mat[self.id] = ect
+        for num in range(self.fac.num_job):
+            next_progress      = tb_est[num][0]
+            bool_job_finished  = (next_progress == -1)
+            if not bool_job_finished:
+                if tb_est[num][1] == self.id:
+                    tb_est[num][4] = ect
+                elif tb_est[num][4] < self.env.now:
+                    tb_est[num][4] = self.env.now
+            # update est with (est = max(jat, mat))
+            tb_est[num][5] = max(tb_est[num][3], tb_est[num][4])
+
         #process order
         if self.fac.log:
             print(f"    ({self.env.now}) {self}  start processing {order} - {order.progress} progress")
+
+            ##########
+            print()
+            print(self.fac.tb_est)
+            print(self.fac.tb_mat)
+            print()
 
         #################
         #    TO DO:     
@@ -229,7 +276,10 @@ class Machine:
 
         #[Gantt plot preparing] udate the start/finish processing time of machine
         prc_time = order.prc_time[order.progress]
-        self.fac.gantt_plot.update_gantt(self.id, self.env.now, prc_time, order.id)
+        self.fac.gantt_plot.update_gantt(self.id, \
+                                         self.env.now, \
+                                         prc_time, \
+                                         order.id)
 
         #do the action about processing
         self.process = self.env.process(self._process_order_callback())
@@ -242,12 +292,20 @@ class Machine:
         #processing order for prc_time mins
         order    = self.status
         prc_time = order.prc_time[order.progress]
-        #[Gantt plot preparing] udate the start/finish processing time of machine
-        self.fac.gantt_plot.update_gantt(self.id, self.env.now, prc_time, order.id)
 
+        #[Gantt plot preparing] udate the start/finish processing time of machine
+        self.fac.gantt_plot.update_gantt(self.id, \
+                                         self.env.now, \
+                                         prc_time, \
+                                         order.id)
+        
         yield self.env.timeout(prc_time)
         if self.fac.log:
             print(f"    ({self.env.now}) {self} finish processing {order} - {order.progress} progress")
+        # [est_table] update ect with (ect = now + proc_time)
+        # tb_est             = self.fac.tb_est
+        # row_job            = order.id - 1
+        # tb_est[row_job][6] = -1
         #change order status
         order.progress += 1
         #send order to next station
@@ -282,9 +340,12 @@ class Sink:
         self.env = self.fac.env
         #attribute
         #statistics
-        self.order_statistic = pd.DataFrame(columns =
-                                            ["id", "release_time", "complete_time", "flow_time"]
-                                            )
+        self.order_statistic = pd.DataFrame(columns = [
+                                            "id", \
+                                            "release_time", \
+                                            "complete_time", \
+                                            "flow_time"
+                                            ])
 
     #################
     #    TO DO:     
@@ -365,12 +426,12 @@ class Factory:
     def __init__(self, num_job, num_machine, file_name, opt_makespan, log=False):
         self.log        = log
 
-        #statistics
+        # statistics
         self.throughput = 0
         self.last_util  = 0
         self.makespan   = INFINITY
 
-        #system config
+        # system config
         self.num_machine    = num_machine
         self.num_job        = num_job
         self.order_info     = pd.read_excel(file_name)
@@ -379,7 +440,12 @@ class Factory:
         self.tb_proc_status = np.zeros((num_job, num_machine))
         self.opt_makespan   = opt_makespan
 
-        #[RL] attributes for the Environment of RL
+        # EST table
+        self.dim_est_table = (self.num_job, 7)
+        self.tb_est        = np.ones((self.dim_est_table))
+        self.tb_mat        = np.zeros(self.num_machine)
+
+        # [RL] attributes for the Environment of RL
         self.dim_actions      = DIM_ACTION
         self.dim_observations = (3, self.num_job, self.num_job)
         self.observations     = np.zeros(self.dim_observations)
@@ -388,15 +454,11 @@ class Factory:
         from gym import spaces
         self.action_space = spaces.Discrete(self.dim_actions)
 
-        self.observations[0] = self.df_machine_no.values
-        self.observations[1] = self.df_proc_times.values
-        self.observations[2] = self.tb_proc_status
-
-        #display        
+        # display        
         self._render_his = []
 
     def build(self):
-        #build
+        # build
         self.env        = simpy.Environment()
         self.source     = Source(self, self.order_info)
         self.dispatcher = Dispatcher(self)
@@ -406,7 +468,7 @@ class Factory:
         for num in range(self.num_machine):
             self.queues[num]   = Queue(self, num)
             self.machines[num] = Machine(self, num)
-        #make connection
+        # make connection
         self.source.set_port()
         for num, queue in self.queues.items():
             queue.set_port()
@@ -414,23 +476,41 @@ class Factory:
             machine.set_port()
         self.sink.set_port()
 
-        #release event which should be the initial state and need to take a rule
+        # release event which should be the initial state and need to take a rule
         self.rls_event = self.env.event()
 
-        #dispatch event which would be successed when the mc finished dispatching
+        # dispatch event which would be successed when the mc finished dispatching
         self.dict_dspch_evt = {}
         self.mc_need_dspch  = set()
         for num in range(self.num_machine):
             self.dict_dspch_evt[num] = self.env.event()
 
-        #terminal event
+        # terminal event
         self.terminal   = self.env.event()
 
-        #[Gantt]
+        # [Gantt]
         self.gantt_plot = Gantt()
 
+        self._init_est_table()
+        self._init_state()
+
+    def _init_est_table(self):
+        self.tb_mat = np.zeros(self.num_machine)
+        for num in range(self.num_job):
+            self.tb_est[num][1] = self.order_info.loc[num, "routing"].split(',')[0]
+            self.tb_est[num][2] = int(self.order_info.loc[num, "process_time"].split(',')[0])
+            self.tb_est[num][3] = int(self.order_info.loc[num, "release_time"])
+            self.tb_est[num][4] = 0.
+            self.tb_est[num][5] = 0.
+            self.tb_est[num][6] = -(1.)
+
+        print()
+        print(self.tb_est)
+        print(self.tb_mat)
+        print()
+
     def get_utilization(self):
-        #compute average utiliztion of machines
+        # compute average utiliztion of machines
         total_using_time = 0
         for _, machine in self.machines.items():
             total_using_time += machine.using_time
@@ -441,6 +521,11 @@ class Factory:
         else:
             utilization = 0
         return utilization
+
+    def _init_state(self):
+        self.observations[0] = self.df_machine_no.values
+        self.observations[1] = self.df_proc_times.values
+        self.observations[2] = np.zeros((self.num_job, self.num_machine))
 
     def _islegal(self, action):
         """
@@ -479,7 +564,7 @@ class Factory:
         last_util    = self.last_util
         reward       = (current_util - last_util)
 
-        #final state
+        # final state
         if self.terminal:
             makespan = self.makespan
             optimal  = self.opt_makespan
@@ -488,7 +573,7 @@ class Factory:
             else:
                 reward += 100 / (makespan - optimal)
         
-        #record current utilization as last utilization
+        # record current utilization as last utilization
         self.last_util = current_util
         return reward
 
@@ -524,39 +609,39 @@ class Factory:
         plt.close('all')
 
     def reset(self):
-        #re-build factory include re-setting the events
+        # re-build factory include re-setting the events
         self.build()
 
-        #display
+        # display
         self._render_his = []
 
-        #reset statistics
+        # reset statistics
         self.throughput = 0
         self.last_util  = 0
         self.makespan   = INFINITY
 
-        #get initial observations
+        # get initial observations
         observations = self._get_observations()
 
         return observations
 
     def step(self, action):
 
-        #execute the action
+        # execute the action
         self._islegal(action)
         self._pass_action(action)
 
-        #Resume to simulate until next observation_point(pause)
+        # Resume to simulate until next observation_point(pause)
         self.obs_point = self.env.event()
         self.env.run(until = self.obs_point)
 
-        #get new observations
+        # get new observations
         observations = self._get_observations()
 
-        #get reward
+        # get reward
         reward = self._get_reward()
 
-        #ternimal condition
+        # ternimal condition
         terminal = self.terminal.triggered
 
         info = {}
@@ -566,6 +651,9 @@ class Factory:
 
 if __name__ == '__main__':
     import time
+    import logging
+    logging.basicConfig(level=logging.WARNING)
+
     pd.set_option('display.max_columns', None)
     pd.set_option('display.max_rows'   , None)
     pd.set_option('display.width'      , 300)
@@ -577,6 +665,7 @@ if __name__ == '__main__':
     usr_interaction = False
     if human_control == 'y':
         usr_interaction = True
+        logging.basicConfig(level=logging.DEBUG)
 
     replication = 12
 
@@ -588,7 +677,8 @@ if __name__ == '__main__':
 
     for rep in range(replication):
         # make environment
-        fac = Factory(6, 6, file_path, opt_makespan, log=False)
+        fac = Factory(6, 6, file_path, opt_makespan, log=True)#False)
+        # fac = Factory(6, 6, file_path, opt_makespan, log=False)
         print('')
         print('-----------')
         print(f'- Rep #{rep}')
@@ -598,6 +688,7 @@ if __name__ == '__main__':
 
         state = fac.reset() #include the bulid function
         done  = False
+        # logging.debug(f'({fac.env.now})\n {state[-1]}\n')
         # print(f'({fac.env.now})')
         # print(f'[{state[-1]}]')
         # print()
@@ -607,6 +698,7 @@ if __name__ == '__main__':
             if fac.log: 
                 for id, queue in fac.queues.items():
                     print(f'\t {queue}: {[str(order) for order in queue.space]}')
+                    # logging.info(f'\t {queue}: {[str(order) for order in queue.space]}')
 
             if not usr_interaction:
                 action = rep % fac.dim_actions #+ 1
@@ -614,6 +706,12 @@ if __name__ == '__main__':
                 action = int(input(f' * ({fac.env.now}) Choose an action from [0 ~ 9]: '))
 
             next_state, reward, done, _ = fac.step(action)
+            # logging.debug(f'({fac.env.now}\n state:\n {state[-1]}\
+            #                                  action:\n {action}\
+            #                                  reward:\n {reward}\
+            #                                  next_state:\ {next_state[-1]})\n')
+            # print(f'[{state[-1]},\n {action}, {reward},\n {next_state[-1]}]')
+            # print()
             # print(f'({fac.env.now})')
             # print(f'[{state[-1]},\n {action}, {reward},\n {next_state[-1]}]')
             # print()
