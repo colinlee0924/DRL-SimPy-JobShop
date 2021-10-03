@@ -2,12 +2,47 @@
 
 import numpy as np
 
+def sort_order_by(queue_space, dspch_rule):
+	if dspch_rule == 'FIFO':
+		space = sorted(queue_space, key= lambda order: order.id)
+	elif dspch_rule == 'LIFO':
+		space = sorted(queue_space, key= lambda order: order.id)
+	else:
+		if dspch_rule == 'SPT':
+			space = sorted(queue_space, key= lambda order: order.prc_time[order.progress])
+		elif dspch_rule == 'LPT':
+			space = sorted(queue_space, key= lambda order: order.prc_time[order.progress], reverse=True)
+		elif dspch_rule == 'LWKR':
+			indx  = np.argmin([sum(ord.prc_time[ord.progress:]) for ord in queue_space])
+		elif dspch_rule == 'MWKR':
+			indx  = np.argmax([sum(ord.prc_time[ord.progress:]) for ord in queue_space])
+		elif dspch_rule == 'SSO':
+			indx  = np.argmin(_get_subsequence_prc_times(queue_space))
+		elif dspch_rule == 'LSO':
+			indx  = np.argmax(_get_subsequence_prc_times(queue_space))
+		elif dspch_rule == 'SPT+SSO':
+			indx  = np.argmin(_get_cur_subsequence_prc_times(queue_space))
+		elif dspch_rule == 'LPT+LSO':
+			indx  = np.argmax(_get_cur_subsequence_prc_times(queue_space))
+		elif dspch_rule == 'STPT':
+		    indx  = np.argmin([sum(order.prc_time) for order in queue_space])
+		elif dspch_rule == 'LTPT':
+		    indx  = np.argmax([sum(order.prc_time) for order in queue_space])
+		else:
+			print(f'[ERROR #1] Here is not a {dspch_rule} rule in set')
+			raise NotImplementedError
+			
+		order = queue_space[indx]
+	return order
+
 def get_order_from(queue_space, dspch_rule):
 	#get oder in queue
 	if dspch_rule == 'FIFO':
 		order = queue_space[0]
 	elif dspch_rule == 'LIFO':
 		order = queue_space[-1]
+		# indx  = np.argmax([order.arr_time for order in queue_space])
+		# order = queue_space[indx]
 	else:
 		if dspch_rule == 'SPT':
 			indx  = np.argmin([order.prc_time[order.progress] for order in queue_space])
@@ -32,7 +67,6 @@ def get_order_from(queue_space, dspch_rule):
 		else:
 			print(f'[ERROR #1] Here is not a {dspch_rule} rule in set')
 			raise NotImplementedError
-			
 			
 		order = queue_space[indx]
 
