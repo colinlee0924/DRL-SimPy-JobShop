@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
 ##------- [Tool] Gantt chart plotting tool --------
@@ -28,7 +28,7 @@ class Gantt:
         self.gantt_data['Start time'].append(ST)
         self.gantt_data['Process time'].append(PT)
 
-    def draw_gantt(self, T_NOW, save = None):
+    def draw_gantt(self, T_NOW, save_name = None):
         #set color list
         # fig = plt.figure(figsize=(12, 6))
         fig, axes = plt.subplots(1, 1, figsize=(16, 6))
@@ -54,23 +54,17 @@ class Gantt:
             # plt.text(text_x, text_y, 'J'+str(text), verticalalignment='center', horizontalalignment='center', fontsize=8)
             ax.text(text_x, text_y, 'J'+str(text), verticalalignment='center', horizontalalignment='center', fontsize=8)
         #figure setting
-        # plt.xlabel("time")
         ax.set_xlabel("time")
-        # plt.ylabel("Machine")
         ax.set_ylabel("Machine")
-        # plt.title("Gantt Chart")
         ax.set_title("Gantt Chart")
-        # plt.xticks(np.arange(0, T_NOW+1, 1))
         if T_NOW >= 20:
             ax.set_xticks(np.arange(0, T_NOW+1, 5))
         else:
             ax.set_xticks(np.arange(0, T_NOW+1, 1))
         # plt.grid(True)
-        return fig
 
-        # if save == None:
-        #     plt.show()
-        # else:
-        #     plt.savefig(save)
-        # # plt.grid(True)
+        if save_name != None:
+            plt.savefig(save_name)
+
+        return fig
 
