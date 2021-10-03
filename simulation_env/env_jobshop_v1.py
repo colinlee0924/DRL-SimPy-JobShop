@@ -263,10 +263,10 @@ class Machine:
             print(f"    ({self.env.now}) {self}  start processing {order} - {order.progress} progress")
 
             ##########
-            print()
-            print(self.fac.tb_est)
-            print(self.fac.tb_mat)
-            print()
+            # print()
+            # print(self.fac.tb_est)
+            # print(self.fac.tb_mat)
+            # print()
 
         #################
         #    TO DO:     
@@ -503,11 +503,6 @@ class Factory:
             self.tb_est[num][4] = 0.
             self.tb_est[num][5] = 0.
             self.tb_est[num][6] = -(1.)
-
-        print()
-        print(self.tb_est)
-        print(self.tb_mat)
-        print()
 
     def get_utilization(self):
         # compute average utiliztion of machines
