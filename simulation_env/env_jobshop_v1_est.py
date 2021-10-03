@@ -452,6 +452,7 @@ class Factory:
         self.observations_2    = self.tb_est
         self.observations      = np.array([self.observations_1, self.observations_2])
         self.actions           = np.arange(self.dim_actions)
+        self.dim_observations  = (self.observations_1.shape, self.observations_2.shape)
 
         from gym import spaces
         self.action_space = spaces.Discrete(self.dim_actions)

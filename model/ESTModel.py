@@ -48,7 +48,7 @@ class ConvBlock(nn.Module):
 
 
 class Net(nn.Module):
-    def __init__(self, state_dim=8, action_dim=4, hidden_dim=128):
+    def __init__(self, state_dim=[(5, 5), (7, 7)], action_dim=4, hidden_dim=128):
         super(Net, self).__init__()
 
         # convolution layers
