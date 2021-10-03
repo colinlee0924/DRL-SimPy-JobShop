@@ -448,9 +448,9 @@ class Factory:
         # [RL] attributes for the Environment of RL
         self.dim_actions       = DIM_ACTION
         self.dim_observation_1 = (3, self.num_job, self.num_job)
-        self.observations      = np.zeros(2)
-        self.observations[0]   = np.zeros(self.dim_observation_1)
-        self.observations[1]   = self.tb_est
+        self.observations_1    = np.zeros(self.dim_observation_1)
+        self.observations_2    = self.tb_est
+        self.observations      = np.array([self.observations_1, self.observations_2])
         self.actions           = np.arange(self.dim_actions)
 
         from gym import spaces
