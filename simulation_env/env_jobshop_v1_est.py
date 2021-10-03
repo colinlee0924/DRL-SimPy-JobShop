@@ -448,8 +448,10 @@ class Factory:
         # [RL] attributes for the Environment of RL
         self.dim_actions       = DIM_ACTION
         self.dim_observation_1 = (3, self.num_job, self.num_job)
+        self.dim_observation_2 = (1, self.num_job, 7)
         self.observations_1    = np.zeros(self.dim_observation_1)
-        self.observations_2    = self.tb_est
+        self.observations_2    = np.zeros(self.dim_observation_2)
+        self.observations_2[0] = self.tb_est
         self.observations      = np.array([self.observations_1, self.observations_2])
         self.actions           = np.arange(self.dim_actions)
         self.dim_observations  = (self.observations_1.shape, self.observations_2.shape)
@@ -524,7 +526,7 @@ class Factory:
         self.observations[0][0] = self.df_machine_no.values
         self.observations[0][1] = self.df_proc_times.values
         self.observations[0][2] = np.zeros((self.num_job, self.num_machine))
-        self.observations[1]    = self.tb_est
+        self.observations[1][0] = self.tb_est
 
     def _islegal(self, action):
         """
@@ -556,7 +558,7 @@ class Factory:
         self.observations[0][0] = self.df_machine_no.values
         self.observations[0][1] = self.df_proc_times.values
         self.observations[0][2] = self.tb_proc_status
-        self.observations[1]    = self.tb_est
+        self.observations[1][0] = self.tb_est
         return self.observations.copy()
 
     def _get_reward(self):
