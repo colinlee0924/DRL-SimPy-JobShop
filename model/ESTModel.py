@@ -79,6 +79,7 @@ class Net(nn.Module):
         # check the output of cnn, which is [fc1_dims]
         self.cnn_outputs_len_1 = self.cnn_out_dim_1(state_dim[0])
         self.cnn_outputs_len_2 = self.cnn_out_dim_2(state_dim[1])
+        self.fcn_inputs_length = self.cnn_outputs_len_1 + self.cnn_outputs_len_2
 
         # fully connected layers
         self.fc1 =  nn.Linear(self.fcn_inputs_length, hidden_dim)
