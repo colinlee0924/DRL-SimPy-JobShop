@@ -236,7 +236,8 @@ class Machine:
         next_progress      = order.progress + 1
         bool_job_finished  = (next_progress >= self.fac.num_machine)
         if bool_job_finished:
-            tb_est[row_job] = np.ones(7) * (-1)
+            # tb_est[row_job] = np.ones(7) * (-1)
+            tb_est[row_job] = np.ones(6) * (-1)
         else:
             next_target        = int(order.routing[next_progress])
             tb_est[row_job][2] = order.prc_time[next_progress]
@@ -244,7 +245,7 @@ class Machine:
             tb_est[row_job][0] += 1.
             tb_est[row_job][3] = ect
             tb_est[row_job][4] = tb_mat[next_target]
-            tb_est[row_job][6] = ect
+            # tb_est[row_job][6] = ect
         # update mat_table and info about mat
         tb_mat[self.id] = ect
         for num in range(self.fac.num_job):
@@ -446,17 +447,19 @@ class Factory:
         self.tb_mat        = np.zeros(self.num_machine)
 
         # [RL] attributes for the Environment of RL
-        self.dim_actions       = DIM_ACTION
-        self.dim_observation_1 = (3, self.num_job, self.num_job)
-        self.dim_observation_2 = (1, self.num_job, 7)
+        self.dim_observation_1 = (3, self.num_job, self.num_machine)
+        self.dim_observation_2 = (1, self.num_job, 6)#7)
+        # self.dim_observations  = (self.observations_1.shape, self.observations_2.shape)
+        self.dim_observations  = (4, self.num_job, 6)
+
         self.observations_1    = np.zeros(self.dim_observation_1)
         self.observations_2    = np.zeros(self.dim_observation_2)
-        self.observations_2[0] = self.tb_est
-        self.observations      = np.array([self.observations_1, self.observations_2])
-        self.actions           = np.arange(self.dim_actions)
-        self.dim_observations  = (self.observations_1.shape, self.observations_2.shape)
+        # self.observations      = np.array([self.observations_1, self.observations_2])
+        self.observations      = np.zeros(self.dim_observations)
 
         from gym import spaces
+        self.dim_actions  = DIM_ACTION
+        self.actions      = np.arange(self.dim_actions)
         self.action_space = spaces.Discrete(self.dim_actions)
 
         # display        
@@ -507,7 +510,7 @@ class Factory:
             self.tb_est[num][3] = int(self.order_info.loc[num, "release_time"])
             self.tb_est[num][4] = 0.
             self.tb_est[num][5] = 0.
-            self.tb_est[num][6] = -(1.)
+            # self.tb_est[num][6] = -(1.)
 
     def get_utilization(self):
         # compute average utiliztion of machines
@@ -523,10 +526,14 @@ class Factory:
         return utilization
 
     def _init_state(self):
-        self.observations[0][0] = self.df_machine_no.values
-        self.observations[0][1] = self.df_proc_times.values
-        self.observations[0][2] = np.zeros((self.num_job, self.num_machine))
-        self.observations[1][0] = self.tb_est
+        # self.observations[0][0] = self.df_machine_no.values
+        # self.observations[0][1] = self.df_proc_times.values
+        # self.observations[0][2] = np.zeros((self.num_job, self.num_machine))
+        # self.observations[1][0] = self.tb_est
+        self.observations[0] = self.df_machine_no.values
+        self.observations[1] = self.df_proc_times.values
+        self.observations[2] = np.zeros((self.num_job, self.num_machine))
+        self.observations[3] = self.tb_est
 
     def _islegal(self, action):
         """
@@ -555,10 +562,14 @@ class Factory:
         self.mc_need_dspch = set()
 
     def _get_observations(self):
-        self.observations[0][0] = self.df_machine_no.values
-        self.observations[0][1] = self.df_proc_times.values
-        self.observations[0][2] = self.tb_proc_status
-        self.observations[1][0] = self.tb_est
+        # self.observations[0][0] = self.df_machine_no.values
+        # self.observations[0][1] = self.df_proc_times.values
+        # self.observations[0][2] = self.tb_proc_status
+        # self.observations[1][0] = self.tb_est
+        self.observations[0] = self.df_machine_no.values
+        self.observations[1] = self.df_proc_times.values
+        self.observations[2] = self.tb_proc_status
+        self.observations[3] = self.tb_est
         return self.observations.copy()
 
     def _get_reward(self):
@@ -679,8 +690,8 @@ if __name__ == '__main__':
 
     for rep in range(replication):
         # make environment
-        fac = Factory(6, 6, file_path, opt_makespan, log=True)#False)
-        # fac = Factory(6, 6, file_path, opt_makespan, log=False)
+        # fac = Factory(6, 6, file_path, opt_makespan, log=True)#False)
+        fac = Factory(6, 6, file_path, opt_makespan, log=False)
         print('')
         print('-----------')
         print(f'- Rep #{rep}')
@@ -691,9 +702,9 @@ if __name__ == '__main__':
         state = fac.reset() #include the bulid function
         done  = False
         # logging.debug(f'({fac.env.now})\n {state[-1]}\n')
-        # print(f'({fac.env.now})')
-        # print(f'[{state[-1]}]')
-        # print()
+        print(f'({fac.env.now})')
+        print(f'[{state}]')
+        print()
         fac.render(done)
         while not done:
 
@@ -713,10 +724,13 @@ if __name__ == '__main__':
             #                                  reward:\n {reward}\
             #                                  next_state:\ {next_state[-1]})\n')
             # print(f'[{state[-1]},\n {action}, {reward},\n {next_state[-1]}]')
-            # print()
-            # print(f'({fac.env.now})')
+            print()
+            print(f'({fac.env.now})')
+            print(f'{state}')
+            print(f'Action --> ({action})')
+            print(f'Reward --> ({reward})')
             # print(f'[{state[-1]},\n {action}, {reward},\n {next_state[-1]}]')
-            # print()
+            print()
             state = next_state
 
             fac.render(terminal=done, use_mode=usr_interaction)
