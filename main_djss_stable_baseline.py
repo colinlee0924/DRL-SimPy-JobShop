@@ -29,8 +29,9 @@ from simulation_env.env_for_job_shop_v7_attention import Factory
 # from dqn_agent_djss                     import DQN as DDQN
 from ddqn_agent_attention                         import DDQN
 
+from stable_baselines.common.policies import MlpPolicy
+from stable_baselines import PPO2
 import pdb
-import wandb
 
 # seed
 import config_djss_attention as config
@@ -60,6 +61,7 @@ def train(args, _env, agent, writer):
         total_reward = 0
         done         = False
         state        = env.reset()
+        state        = torch.flatten(state)
 
         # While not terminate
         for t in itertools.count(start=1):
@@ -79,6 +81,7 @@ def train(args, _env, agent, writer):
 
             # execute action
             next_state, reward, done, _ = env.step(action)
+            next_state                  = torch.flatten(next_state)
 
             # store transition
             agent.append(state, action, reward, next_state, done)
@@ -93,9 +96,6 @@ def train(args, _env, agent, writer):
                 if loss is not None:
                     writer.add_scalar('Train-Step/Loss', loss,
                                       total_step)
-                    wandb.log({
-                        'loss': loss
-                        })
 
             # transit next_state --> current_state 
             state         = next_state
@@ -119,15 +119,6 @@ def train(args, _env, agent, writer):
                                   episode)
                 writer.add_scalar('Train-Step/Ewma_Reward', ewma_reward,
                                   total_step)
-                wandb.log({
-                    'Reward': total_reward, 
-                    'Makespan': env.makespan,
-                    'MeanFT': env.mean_flow_time,
-                    'Epsilon': epsilon
-                    })
-                wandb.log({
-                    'Ewma_Reward': ewma_reward,
-                    })
                 if loss is not None:
                     writer.add_scalar('Train-Step/Loss', loss,
                                       total_step)
@@ -135,6 +126,11 @@ def train(args, _env, agent, writer):
                     '  - Step: {}\tEpisode: {}\tLength: {:3d}\tTotal reward: {:.2f}\tEwma reward: {:.2f}\tMakespan: {:.2f}\tMeanFT: {:.2f}\tEpsilon: {:.3f}'
                     .format(total_step, episode, t, total_reward, ewma_reward, env.makespan, env.mean_flow_time,
                             epsilon))
+
+                # # Check the scheduling result
+                # if episode % 50 == 0:
+                #     fig = env.gantt_plot.draw_gantt(env.makespan)
+                #     writer.add_figure('Train-Episode/Gantt_Chart', fig, episode)
                 break
         
         # if episode > 1000:
@@ -151,7 +147,7 @@ def test(args, _env, agent, writer):
 
     action_space = env.action_space
     epsilon      = args.test_epsilon
-    seeds        = [args.seed + i for i in range(100)]
+    seeds        = [args.seed + i for i in range(10)]
     rewards      = []
     makespans    = []
     lst_mean_ft  = []
@@ -181,11 +177,6 @@ def test(args, _env, agent, writer):
                 writer.add_scalar('Test/Episode_Reward'  , total_reward, n_episode)
                 writer.add_scalar('Test/Episode_Makespan', env.makespan, n_episode)
                 writer.add_scalar('Test/Episode_MeanFT', env.mean_flow_time, n_episode)
-                wandb.log({
-                    'Test_Reward': total_reward, 
-                    'Test_Makespan': env.makespan,
-                    'Test_MeanFT': env.mean_flow_time
-                    })
                 rewards.append(total_reward)
                 makespans.append(env.makespan)
                 lst_mean_ft.append(env.mean_flow_time)
@@ -203,7 +194,6 @@ def test(args, _env, agent, writer):
 
 
 def main():
-    import wandb
     import config_djss_attention as config
     ## arguments ##
     parser = argparse.ArgumentParser(description=__doc__)
@@ -230,8 +220,6 @@ def main():
     parser.add_argument('--test_epsilon', default=config.TEST_EPSILON, type=float)
     args = parser.parse_args()
 
-    wandb.init(project='DRL-SimPy-JSS', config=args)
-
     ## main ##
     file_name       = config.FILE_NAME
     file_dir        = os.getcwd() + '/simulation_env/instance'
@@ -251,12 +239,13 @@ def main():
 
     # Tensorboard to trace the learning process
     # time_start = time.strftime("%Y%m%d-%H-%M-%S", time.localtime())
-    # writer = SummaryWriter(f'log_djss_attention/DDQN-4x500x6-{time_start}')
-    writter_name = config.WRITTER
+    writer = SummaryWriter(f'log_djss_stablebaseline/PPO-3x300x4-{time_start}')
+    # writter_name = config.WRITTER
     writer       = SummaryWriter(f'{writter_name}')
     # writer = SummaryWriter(f'log/DQN-{time.time()}')
     # writer = SummaryWriter(f'log/DDQN-{time.time()}')
 
+    args.model = f'model/djss_stablebaseline/PPO-3x300x4-{time_start}'
     ## Train ##
     # agent.load('model/djss_attention/ddqn-attention-h4-20211224-125019.pth-ck-1000.pth')
     if not args.test_only:

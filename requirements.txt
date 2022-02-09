@@ -23,7 +23,6 @@ multidict==4.7.6
 numpy==1.19.2
 oauthlib==3.1.0
 openpyxl==3.0.7
-pandas==1.3.2
 Pillow==7.2.0
 protobuf==3.13.0
 pyasn1==0.4.8
@@ -41,8 +40,6 @@ six==1.15.0
 tensorboard==2.3.0
 tensorboard-plugin-wit==1.7.0
 tensorboardX==2.1
-torch==1.6.0
-torchvision==0.7.0
 tqdm==4.49.0
 typing-extensions==3.7.4.3
 urllib3==1.25.10

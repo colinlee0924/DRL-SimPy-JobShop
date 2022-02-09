@@ -37,5 +37,5 @@ class ReplayMemory:
     def sample(self, batch_size, device):
         '''sample a batch of transition tensors'''
         transitions = random.sample(self.buffer, batch_size)
-        return (torch.tensor(x, dtype=torch.float, device=device)
+        return (torch.tensor(np.array(x), dtype=torch.float, device=device)
                 for x in zip(*transitions))

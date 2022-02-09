@@ -17,6 +17,7 @@ import argparse
 import itertools
 
 import numpy    as np
+import pandas   as pd
 import torch.nn as nn
 import matplotlib.pyplot    as plt
 
@@ -30,7 +31,6 @@ from simulation_env.env_for_job_shop_v7_attention import Factory
 from ddqn_agent_attention                         import DDQN
 
 import pdb
-import wandb
 
 # seed
 import config_djss_attention as config
@@ -42,123 +42,30 @@ torch.backends.cudnn.deterministic = True
 
 logging.basicConfig(level=logging.DEBUG)
 plt.set_loglevel('WARNING') 
-# -----------------------------------------------
-
-def train(args, _env, agent, writer):
-    logging.info('* Start Training')
-
-    env          = _env
-    action_space = env.action_space
-
-    total_step, epsilon, ewma_reward = 0, 1., 0.
-
-    # Switch to train mode
-    agent.train()
-
-    # Training until episode-condition
-    for episode in range(args.episode):
-        total_reward = 0
-        done         = False
-        state        = env.reset()
-
-        # While not terminate
-        for t in itertools.count(start=1):
-            # if args.render and episode > 700:
-            #     env.render(done)
-            #     time.sleep(0.0082)
-
-            # select action
-            if episode < args.priori_period:
-                action = episode % env.dim_actions
-                # action = action_space.sample()
-            elif total_step < args.warmup:
-                action = action_space.sample()
-            else:
-                action = agent.select_action(state, epsilon, action_space)
-                epsilon = max(epsilon * args.eps_decay, args.eps_min)
-
-            # execute action
-            next_state, reward, done, _ = env.step(action)
-
-            # store transition
-            agent.append(state, action, reward, next_state, done)
-            if done or reward > 10:
-                for _ in range(20):
-                    agent.append(state, action, reward, next_state, done)
-
-            # optimize the model
-            loss = None
-            if total_step >= args.warmup:
-                loss = agent.update(total_step)
-                if loss is not None:
-                    writer.add_scalar('Train-Step/Loss', loss,
-                                      total_step)
-                    wandb.log({
-                        'loss': loss
-                        })
-
-            # transit next_state --> current_state 
-            state         = next_state
-            total_reward += reward
-            total_step  += 1
-
-            if args.render and episode > args.render_episode:
-                env.render(done)
-                # time.sleep(0.0082)
-
-            # Break & Record the performance at the end each episode
-            if done:
-                ewma_reward = 0.05 * total_reward + (1 - 0.05) * ewma_reward
-                writer.add_scalar('Train-Episode/Reward', total_reward,
-                                  episode)
-                writer.add_scalar('Train-Episode/Makespan', env.makespan,
-                                  episode)
-                writer.add_scalar('Train-Episode/MeanFT', env.mean_flow_time,
-                                  episode)
-                writer.add_scalar('Train-Episode/Epsilon', epsilon,
-                                  episode)
-                writer.add_scalar('Train-Step/Ewma_Reward', ewma_reward,
-                                  total_step)
-                wandb.log({
-                    'Reward': total_reward, 
-                    'Makespan': env.makespan,
-                    'MeanFT': env.mean_flow_time,
-                    'Epsilon': epsilon
-                    })
-                wandb.log({
-                    'Ewma_Reward': ewma_reward,
-                    })
-                if loss is not None:
-                    writer.add_scalar('Train-Step/Loss', loss,
-                                      total_step)
-                logging.info(
-                    '  - Step: {}\tEpisode: {}\tLength: {:3d}\tTotal reward: {:.2f}\tEwma reward: {:.2f}\tMakespan: {:.2f}\tMeanFT: {:.2f}\tEpsilon: {:.3f}'
-                    .format(total_step, episode, t, total_reward, ewma_reward, env.makespan, env.mean_flow_time,
-                            epsilon))
-                break
-        
-        # if episode > 1000:
-            # epsilon = max(epsilon * args.eps_decay, args.eps_min)
-        env.close()
-        ## Train ##
-        if episode % 1000 == 0 and episode > 0:
-            agent.save(f'{args.model}-ck-{episode}.pth')
 
 
-def test(args, _env, agent, writer):
+def test(args, _env, agent, writer, CHECK_PTS):
     logging.info('\n* Start Testing')
     env = _env
 
     action_space = env.action_space
     epsilon      = args.test_epsilon
     seeds        = [args.seed + i for i in range(100)]
+    # seeds        = [args.seed + i for i in range(30)]
     rewards      = []
     makespans    = []
     lst_mean_ft  = []
 
     n_episode   = 0
     seed_loader = tqdm(seeds)
+    ##################### Record Action ###################
+    episode_percentage, episode_selection = [], []
+    ######################################################
+
     for seed in seed_loader:
+    #################### Record Action ###################
+        action_selection = [0] * env.dim_actions
+    ######################################################
         n_episode   += 1
         total_reward = 0
         # env.seed(seed)
@@ -170,6 +77,9 @@ def test(args, _env, agent, writer):
             
             # execute action
             next_state, reward, done, _ = env.step(action)
+    #################### Record Action ###################
+            action_selection[action] += 1
+    ######################################################
 
             state         = next_state
             total_reward += reward
@@ -178,14 +88,9 @@ def test(args, _env, agent, writer):
             #env.render(terminal=done)
 
             if done:
-                writer.add_scalar('Test/Episode_Reward'  , total_reward, n_episode)
-                writer.add_scalar('Test/Episode_Makespan', env.makespan, n_episode)
-                writer.add_scalar('Test/Episode_MeanFT', env.mean_flow_time, n_episode)
-                wandb.log({
-                    'Test_Reward': total_reward, 
-                    'Test_Makespan': env.makespan,
-                    'Test_MeanFT': env.mean_flow_time
-                    })
+                writer.add_scalar(f'Test_{CHECK_PTS}/Episode_Reward'  , total_reward, n_episode)
+                writer.add_scalar(f'Test_{CHECK_PTS}/Episode_Makespan', env.makespan, n_episode)
+                writer.add_scalar(f'Test_{CHECK_PTS}/Episode_MeanFT', env.mean_flow_time, n_episode)
                 rewards.append(total_reward)
                 makespans.append(env.makespan)
                 lst_mean_ft.append(env.mean_flow_time)
@@ -196,14 +101,30 @@ def test(args, _env, agent, writer):
                 break
 
         env.close()
+    #################### Record Action ###################
+        # statistic of the selection of action 
+        action_percentage = [0] * len(action_selection)
+        for act in range(len(action_selection)):
+            action_percentage[act] = action_selection[act] / t
+        episode_selection.append(action_selection)
+        episode_percentage.append(action_percentage)
+    ######################################################
+    df_act_res = pd.DataFrame(episode_selection)
+    df_act_per = pd.DataFrame(episode_percentage)
+    df_act_res.to_csv('testing_action_result.csv')
+    df_act_per.to_csv('testing_action_percentage.csv')
 
     logging.info(f'  - Average Reward   = {np.mean(rewards)}')
     logging.info(f'  - Average Makespan = {np.mean(makespans)}')
     logging.info(f'  - Average MeanFT = {np.mean(lst_mean_ft)}')
 
+    df = pd.DataFrame(lst_mean_ft)
+    pd.set_option('display.max_rows', df.shape[0] + 1)
+    print(df)
+    df.to_csv('testing_result_09_4m200n.csv')
+
 
 def main():
-    import wandb
     import config_djss_attention as config
     ## arguments ##
     parser = argparse.ArgumentParser(description=__doc__)
@@ -230,8 +151,6 @@ def main():
     parser.add_argument('--test_epsilon', default=config.TEST_EPSILON, type=float)
     args = parser.parse_args()
 
-    wandb.init(project='DRL-SimPy-JSS', config=args)
-
     ## main ##
     file_name       = config.FILE_NAME
     file_dir        = os.getcwd() + '/simulation_env/instance'
@@ -245,30 +164,34 @@ def main():
 
     # Agent & Environment
     # env    = Factory(num_job, num_machine, file_path, opt_makespan, log=False)
+    # env    = Factory(file_path, default_rule='FIFO', util=0.85, log=False)#True)
     env    = Factory(file_path, default_rule='FIFO', util=0.9, log=False)#True)
     # agent  = DQN(env.dim_observations, env.dim_actions, args)
     agent  = DDQN(env.dim_observations, env.dim_actions, args)
 
     # Tensorboard to trace the learning process
+    ## -----------------------------------------------
+    MODEL_VERSION = "20211224-145648"
+    CHECK_PTS     = 19000
+    # CHECK_PTS = 50000
+    ## -----------------------------------------------
     # time_start = time.strftime("%Y%m%d-%H-%M-%S", time.localtime())
     # writer = SummaryWriter(f'log_djss_attention/DDQN-4x500x6-{time_start}')
     writter_name = config.WRITTER
-    writer       = SummaryWriter(f'{writter_name}')
-    # writer = SummaryWriter(f'log/DQN-{time.time()}')
+    # writer       = SummaryWriter(f'{writter_name}')
+    # writer = SummaryWriter(f'test_log/DDQN-attention-h4-load085-{MODEL_VERSION}')
+    writer = SummaryWriter(f'test_log/DDQN-attention-h4-load09-{MODEL_VERSION}')
     # writer = SummaryWriter(f'log/DDQN-{time.time()}')
-
-    ## Train ##
-    # agent.load('model/djss_attention/ddqn-attention-h4-20211224-125019.pth-ck-1000.pth')
-    if not args.test_only:
-        train(args, env, agent, writer)
-        agent.save(args.model)
-
     ## Test ##  To test the pre-trained model
-    agent.load(args.model)
-    test(args, env, agent, writer)
+    # agent.load(args.model)
+    # agent.load('model/djss_attention/ddqn-attention-h4-20211224-145648.pth-ck-19000.pth')
+    agent.load(f'model/djss_attention/ddqn-attention-h4-{MODEL_VERSION}.pth-ck-{CHECK_PTS}.pth')
+    # agent.load(f'model/djss_attention/ddqn-attention-h4-20211224-145648.pth')
+    test(args, env, agent, writer, CHECK_PTS)
 
     writer.close()
 
 
 if __name__ == '__main__':
     main()
+

@@ -19,6 +19,7 @@ import pandas               as pd
 import matplotlib.pyplot    as plt
 import utils.dispatch_logic as dp_logic
 
+from scipy.stats               import truncnorm
 from collections               import defaultdict
 from matplotlib.animation      import FuncAnimation
 from utils.GanttPlot           import Gantt
@@ -31,8 +32,8 @@ np.random.seed(seed)
 INFINITY   = float('inf')
 OPTIMAL_L  = config.OPT_MAKESPAN
 DIM_ACTION = config.DIM_ACTION
-PADDING    = 0
-# PADDING    = -1
+# PADDING    = 0
+PADDING    = -1
 
 np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
 plt.set_loglevel('WARNING') 
@@ -108,7 +109,9 @@ class Source:
         for num in range(num_order):
         # while True:
             ## Delay ## wait for inter-arrival time
-            yield self.env.timeout(inter_arvl)
+            an_random_var = truncnorm.rvs(-inter_arvl, inter_arvl)
+            yield self.env.timeout(inter_arvl + an_random_var)
+            # yield self.env.timeout(inter_arvl)
 
             # create an instance of Order
             id        = self.num_generated
@@ -452,12 +455,12 @@ class Factory:
         self.log            = log
         # system config
         self.jssp_config  = jssp_config
-        self.num_machine  = 4# 6 #4#6 #jssp_config.num_machine
+        self.num_machine  = 4#6 #jssp_config.num_machine
         self.num_op       = 3 # 4 #3#4#6
-        self.num_job      = 300 #2000#300 #1000 #jssp_config.num_job
+        self.num_job      = 200 #2000#300 #1000 #jssp_config.num_job
 
-        self.warmup_job   = 100 # 1000 #100 #1000
-        self.terminal_order_num = 200 #2000#200
+        self.warmup_job   = 100##100 # 1000 #100 #1000
+        self.terminal_order_num = 200#200 #2000#200
 
         self.level_load      = util #0.8 #0.9
         self.avg_prc_time    = 5.5 #20.2 #18 #5.5
@@ -764,7 +767,7 @@ if __name__ == '__main__':
                                        "avg_utilization"
                                        ])
     counter = 0
-    lst_util = [0.85, 0.95] #[9] #[0.6, 0.7, 0.8]
+    lst_util = [.85, .9, .95] #[9] #[0.6, 0.7, 0.8]
     for util in lst_util:
         # fac = Factory(file_path, default_rule, util, log=True)
         fac = Factory(file_path, default_rule, util, log=False)
@@ -773,7 +776,7 @@ if __name__ == '__main__':
         # for rule in range(1):
             d_rule = ACTION_MAP[rule]
             print(f'Rule {rule}: {d_rule}')
-            for rep in tqdm(range(30)):
+            for rep in tqdm(range(100)):
             # for rep in range(1):
                 # print('#########################################################################################################')
                 state = fac.reset()
@@ -827,5 +830,5 @@ if __name__ == '__main__':
             # print('===========\n')
             # print(df_result)
         # df_result.to_excel("result_spt.xlsx")
-        df_result.to_csv("result_85_95.csv")
-        print(df_result)
+    df_result.to_excel("dyn_arvl_rate_Warmup_200n_result_85_90_95_m4.xlsx")
+    print(df_result)

@@ -17,6 +17,7 @@ import argparse
 import itertools
 
 import numpy    as np
+import pandas   as pd
 import torch.nn as nn
 import matplotlib.pyplot    as plt
 
@@ -27,13 +28,13 @@ from tqdm         import tqdm
 # from simulation_env.env_jobshop_v1 import Factory
 from simulation_env.env_for_job_shop_v7_attention import Factory
 # from dqn_agent_djss                     import DQN as DDQN
-from ddqn_agent_attention                         import DDQN
+from ddqn_agent_attention_paper                   import DDQN
 
 import pdb
 import wandb
 
 # seed
-import config_djss_attention as config
+import config_djss_attention_paper as config
 seed = config.SEED #999
 random.seed(seed)
 np.random.seed(seed)
@@ -55,11 +56,18 @@ def train(args, _env, agent, writer):
     # Switch to train mode
     agent.train()
 
+    #################### Record Action ###################
+    episode_percentage, episode_selection = [], []
+    ######################################################
+
     # Training until episode-condition
     for episode in range(args.episode):
         total_reward = 0
         done         = False
         state        = env.reset()
+    #################### Record Action ###################
+        action_selection = [0] * env.dim_actions
+    ######################################################
 
         # While not terminate
         for t in itertools.count(start=1):
@@ -80,6 +88,10 @@ def train(args, _env, agent, writer):
             # execute action
             next_state, reward, done, _ = env.step(action)
 
+    #################### Record Action ###################
+            action_selection[action] += 1
+   ######################################################
+
             # store transition
             agent.append(state, action, reward, next_state, done)
             if done or reward > 10:
@@ -93,9 +105,6 @@ def train(args, _env, agent, writer):
                 if loss is not None:
                     writer.add_scalar('Train-Step/Loss', loss,
                                       total_step)
-                    wandb.log({
-                        'loss': loss
-                        })
 
             # transit next_state --> current_state 
             state         = next_state
@@ -123,18 +132,26 @@ def train(args, _env, agent, writer):
                     'Reward': total_reward, 
                     'Makespan': env.makespan,
                     'MeanFT': env.mean_flow_time,
-                    'Epsilon': epsilon
+                    'Epsilon': epsilon,
+                    'Ewma_Reward': ewma_reward
                     })
-                wandb.log({
-                    'Ewma_Reward': ewma_reward,
-                    })
+
                 if loss is not None:
                     writer.add_scalar('Train-Step/Loss', loss,
                                       total_step)
+                    wandb.log({
+                        'loss': loss
+                        })
+
                 logging.info(
                     '  - Step: {}\tEpisode: {}\tLength: {:3d}\tTotal reward: {:.2f}\tEwma reward: {:.2f}\tMakespan: {:.2f}\tMeanFT: {:.2f}\tEpsilon: {:.3f}'
                     .format(total_step, episode, t, total_reward, ewma_reward, env.makespan, env.mean_flow_time,
                             epsilon))
+
+                # # Check the scheduling result
+                # if episode % 50 == 0:
+                #     fig = env.gantt_plot.draw_gantt(env.makespan)
+                #     writer.add_figure('Train-Episode/Gantt_Chart', fig, episode)
                 break
         
         # if episode > 1000:
@@ -143,6 +160,28 @@ def train(args, _env, agent, writer):
         ## Train ##
         if episode % 1000 == 0 and episode > 0:
             agent.save(f'{args.model}-ck-{episode}.pth')
+    #################### Record Action ###################
+        # statistic of the selection of action 
+        action_percentage = [0] * len(action_selection)
+        for act in range(len(action_selection)):
+            action_percentage[act] = action_selection[act] / t
+        episode_percentage.append(action_percentage)
+        episode_selection.append(action_selection)
+        action_list = [
+               'FIFO'   , 'LIFO'   , 'SPT' , 'LPT', 
+               'LWKR'   , 'MWKR'   , 'SSO' , 'LSO',
+               'SPT+SSO', 'LPT+LSO' 
+               ]
+        for act in range(len(action_list)):
+            wandb.log({
+                action_list[act]: action_percentage[act],
+                f'num_{action_list[act]}': action_selection[act]
+                })
+    ######################################################
+    df_act_res = pd.DataFrame(episode_selection)
+    df_act_per = pd.DataFrame(episode_percentage)
+    df_act_res.to_csv('paper_training_action_result.csv')
+    df_act_per.to_csv('paper_training_action_percentage.csv')
 
 
 def test(args, _env, agent, writer):
@@ -158,7 +197,14 @@ def test(args, _env, agent, writer):
 
     n_episode   = 0
     seed_loader = tqdm(seeds)
+    ##################### Record Action ###################
+    episode_percentage, episode_selection = [], []
+    ######################################################
+
     for seed in seed_loader:
+    #################### Record Action ###################
+        action_selection = [0] * env.dim_actions
+    ######################################################
         n_episode   += 1
         total_reward = 0
         # env.seed(seed)
@@ -170,6 +216,9 @@ def test(args, _env, agent, writer):
             
             # execute action
             next_state, reward, done, _ = env.step(action)
+    #################### Record Action ###################
+            action_selection[action] += 1
+    ######################################################
 
             state         = next_state
             total_reward += reward
@@ -186,6 +235,7 @@ def test(args, _env, agent, writer):
                     'Test_Makespan': env.makespan,
                     'Test_MeanFT': env.mean_flow_time
                     })
+
                 rewards.append(total_reward)
                 makespans.append(env.makespan)
                 lst_mean_ft.append(env.mean_flow_time)
@@ -196,6 +246,18 @@ def test(args, _env, agent, writer):
                 break
 
         env.close()
+    #################### Record Action ###################
+        # statistic of the selection of action 
+        action_percentage = [0] * len(action_selection)
+        for act in range(len(action_selection)):
+            action_percentage[act] = action_selection[act] / total_step
+        episode_percentage.append(action_percentage)
+        episode_selection.append(action_selection)
+    ######################################################
+    df_act_res = pd.DataFrame(episode_selection)
+    df_act_per = pd.DataFrame(episode_percentage)
+    df_act_res.to_csv('paper_testing_action_result.csv')
+    df_act_per.to_csv('paper_testing_action_percentage.csv')
 
     logging.info(f'  - Average Reward   = {np.mean(rewards)}')
     logging.info(f'  - Average Makespan = {np.mean(makespans)}')
@@ -204,7 +266,7 @@ def test(args, _env, agent, writer):
 
 def main():
     import wandb
-    import config_djss_attention as config
+    import config_djss_attention_paper as config
     ## arguments ##
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('-d', '--device', default=config.DEVICE) #'cuda')

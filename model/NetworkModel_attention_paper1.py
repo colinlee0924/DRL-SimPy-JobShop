@@ -64,8 +64,8 @@ class MultiHeadRelationalModule(torch.nn.Module):
     def __init__(self, input_dim=(4, 100, 6), output_dim=10 ,device='cuda'):
         super(MultiHeadRelationalModule, self).__init__()
         self.device   = torch.device(device)
-        # self.conv1_ch = 64
-        # self.conv2_ch = 32
+        self.conv1_ch = 16#64
+        self.conv2_ch = 32
         # self.conv3_ch = 24
         # self.conv4_ch = 30
         self.ch_in        = input_dim[0]
@@ -74,10 +74,12 @@ class MultiHeadRelationalModule(torch.nn.Module):
         self.sp_coord_dim = 2
         self.input_height = input_dim[1]
         self.input_width  = input_dim[2]
+        # self.n_cout_pixel = 400#int(self.input_height * self.input_width) #number of nodes (pixels num after passing the cnn)
         self.n_cout_pixel = int(self.input_height * self.input_width) #number of nodes (pixels num after passing the cnn)
         self.out_dim      = output_dim
         # self.lin_hid = 100
         self.conv2_ch = self.ch_in
+        # self.conv2_ch = 32
 
         self.proj_shape = (
             (self.conv2_ch + self.sp_coord_dim), 
@@ -89,9 +91,9 @@ class MultiHeadRelationalModule(torch.nn.Module):
             self.node_size
         )
 
-        # self.conv_1 = nn.Conv2d(self.ch_in   , self.conv1_ch, kernel_size=(1,1), padding=0) #A
-        # self.conv_2 = nn.Conv2d(self.conv1_ch, self.conv2_ch, kernel_size=(1,1), padding=0)
-        # #normalize the para of cnn network
+        # self.conv_1 = nn.Conv2d(self.ch_in   , self.conv1_ch, kernel_size=(1,2), padding=0) #A
+        # self.conv_2 = nn.Conv2d(self.conv1_ch, self.conv2_ch, kernel_size=(1,2), padding=0)
+        #normalize the para of cnn network
         # n1 = self.conv_1.kernel_size[0] * self.conv_1.kernel_size[1] * self.conv_1.out_channels
         # n2 = self.conv_2.kernel_size[0] * self.conv_2.kernel_size[1] * self.conv_2.out_channels
         # self.conv_1.weight.data.normal_(0, math.sqrt(2. / n1))

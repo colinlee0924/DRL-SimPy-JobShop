@@ -55,11 +55,26 @@ def train(args, _env, agent, writer):
     # Switch to train mode
     agent.train()
 
+    #################### Record Action ###################
+    # counter = 0
+    # df_action = pd.DataFrame(columns = [
+    #                                    "epidose", \
+    #                                    "rule", \
+    #                                    "reward", \
+    #                                    "avg_utilization"
+    #                                    ])
+    episode_percentage, episode_selection = [], []
+    ######################################################
+
     # Training until episode-condition
     for episode in range(args.episode):
         total_reward = 0
         done         = False
         state        = env.reset()
+
+    #################### Record Action ###################
+        action_selection = [0] * env.dim_actions
+    ######################################################
 
         # While not terminate
         for t in itertools.count(start=1):
@@ -80,6 +95,14 @@ def train(args, _env, agent, writer):
             # execute action
             next_state, reward, done, _ = env.step(action)
 
+    #################### Record Action ###################
+            action_selection[action] += 1
+            # avg_utils                 = env.get_utilization()
+            # df_action.loc[counter]    = \
+            #     [episode, rule, total_reward, avg_utils]
+            # counter += 1
+    ######################################################
+
             # store transition
             agent.append(state, action, reward, next_state, done)
             if done or reward > 10:
@@ -93,10 +116,6 @@ def train(args, _env, agent, writer):
                 if loss is not None:
                     writer.add_scalar('Train-Step/Loss', loss,
                                       total_step)
-                    wandb.log({
-                        'loss': loss
-                        })
-
             # transit next_state --> current_state 
             state         = next_state
             total_reward += reward
@@ -123,14 +142,16 @@ def train(args, _env, agent, writer):
                     'Reward': total_reward, 
                     'Makespan': env.makespan,
                     'MeanFT': env.mean_flow_time,
-                    'Epsilon': epsilon
-                    })
-                wandb.log({
+                    'Epsilon': epsilon,
                     'Ewma_Reward': ewma_reward,
                     })
                 if loss is not None:
                     writer.add_scalar('Train-Step/Loss', loss,
                                       total_step)
+                    wandb.log({
+                        'loss': loss
+                        })
+
                 logging.info(
                     '  - Step: {}\tEpisode: {}\tLength: {:3d}\tTotal reward: {:.2f}\tEwma reward: {:.2f}\tMakespan: {:.2f}\tMeanFT: {:.2f}\tEpsilon: {:.3f}'
                     .format(total_step, episode, t, total_reward, ewma_reward, env.makespan, env.mean_flow_time,
@@ -143,6 +164,28 @@ def train(args, _env, agent, writer):
         ## Train ##
         if episode % 1000 == 0 and episode > 0:
             agent.save(f'{args.model}-ck-{episode}.pth')
+    #################### Record Action ###################
+        # statistic of the selection of action 
+        action_percentage = [0] * len(action_selection)
+        for act in range(len(action_selection)):
+            action_percentage[act] = action_selection[act] / t
+        episode_percentage.append(action_percentage)
+        episode_selection.append(action_selection)
+        action_list = [
+               'FIFO'   , 'LIFO'   , 'SPT' , 'LPT', 
+               'LWKR'   , 'MWKR'   , 'SSO' , 'LSO',
+               'SPT+SSO', 'LPT+LSO' 
+               ]
+        for act in range(len(action_list)):
+            wandb.log({
+                action_list[act]: action_percentage[act],
+                f'num_{action_list[act]}': action_selection[act]
+                })
+    ######################################################
+    df_act_res = pd.DataFrame(episode_selection)
+    df_act_per = pd.DataFrame(episode_percentage)
+    df_act_res.to_csv('training_action_result.csv')
+    df_act_per.to_csv('training_action_percentage.csv')
 
 
 def test(args, _env, agent, writer):
@@ -158,7 +201,14 @@ def test(args, _env, agent, writer):
 
     n_episode   = 0
     seed_loader = tqdm(seeds)
+    ##################### Record Action ###################
+    episode_percentage, episode_selection = [], []
+    ######################################################
+
     for seed in seed_loader:
+    #################### Record Action ###################
+        action_selection = [0] * env.dim_actions
+    ######################################################
         n_episode   += 1
         total_reward = 0
         # env.seed(seed)
@@ -170,6 +220,9 @@ def test(args, _env, agent, writer):
             
             # execute action
             next_state, reward, done, _ = env.step(action)
+    #################### Record Action ###################
+            action_selection[action] += 1
+    ######################################################
 
             state         = next_state
             total_reward += reward
@@ -196,6 +249,18 @@ def test(args, _env, agent, writer):
                 break
 
         env.close()
+    #################### Record Action ###################
+        # statistic of the selection of action 
+        action_percentage = [0] * len(action_selection)
+        for act in range(len(action_selection)):
+            action_percentage[act] = action_selection[act] / t
+        episode_selection.append(action_selection)
+        episode_percentage.append(action_percentage)
+    ######################################################
+    df_act_res = pd.DataFrame(episode_selection)
+    df_act_per = pd.DataFrame(episode_percentage)
+    df_act_res.to_csv('testing_action_result.csv')
+    df_act_per.to_csv('testing_action_percentage.csv')
 
     logging.info(f'  - Average Reward   = {np.mean(rewards)}')
     logging.info(f'  - Average Makespan = {np.mean(makespans)}')

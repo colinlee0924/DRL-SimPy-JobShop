@@ -19,7 +19,7 @@ import torch.nn as nn
 from tensorboardX import SummaryWriter
 from datetime     import datetime as dt
 
-from model.NetworkModel_attention import MultiHeadRelationalModule as Net
+from model.NetworkModel_attention_paper import MultiHeadRelationalModule as Net
 # from model.FullyNetwork import Net
 from utils.MemeryBuffer import ReplayMemory
 

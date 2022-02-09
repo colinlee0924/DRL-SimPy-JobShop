@@ -121,8 +121,8 @@ class Source:
             np.random.shuffle(routing)
             counter = 0
             for _ in routing[num_op:]:
-                routing[num_op + counter]  = PADDING#-1
-                prc_time[num_op + counter] = PADDING#-1
+                routing[num_op + counter]  = -1#PADDING#-1
+                prc_time[num_op + counter] = -1#PADDING#-1
                 counter                   += 1
             rls_time = self.env.now
             order    = Order(id, routing, prc_time, rls_time)
@@ -355,8 +355,10 @@ class Machine:
         if order.id < self.fac.num_job:
             # self.fac.tb_proc_status[order.id][order.progress] = 1
             # self.fac.tb_proc_status[order.id][order.progress] = 2
-            self.fac.tb_machine_no[order.id][order.progress] = 3
-            # self.fac.tb_proc_times[order.id][order.progress] = PADDING
+            # self.fac.tb_machine_no[order.id][order.progress] = 3
+            self.fac.tb_proc_times[order.id][order.progress] = PADDING
+            self.fac.tb_machine_no[order.id][order.progress] = PADDING
+            self.fac.tb_proc_times[order.id][order.progress] = PADDING
             ########################################################
             # job_per_channel = self.fac.job_per_channel
             # channel = int(order.id / job_per_channel)
@@ -454,7 +456,7 @@ class Factory:
         self.jssp_config  = jssp_config
         self.num_machine  = 4# 6 #4#6 #jssp_config.num_machine
         self.num_op       = 3 # 4 #3#4#6
-        self.num_job      = 300 #2000#300 #1000 #jssp_config.num_job
+        self.num_job      = 200 #2000#300 #1000 #jssp_config.num_job
 
         self.warmup_job   = 100 # 1000 #100 #1000
         self.terminal_order_num = 200 #2000#200
@@ -598,10 +600,10 @@ class Factory:
         self.observations[1] = self.tb_proc_times.copy() / self.high_proc
         # self.observations[2] = self.tb_asgn_status
         # self.observations[3] = self.tb_proc_status
-        # self.observations[2] = self.tb_proc_status.copy() #/ (2)
-        self.observations[2] = self.tb_proc_status.copy() / (3)
-        # for matrix in self.observations:
-        #     matrix[matrix < 0] = -1
+        self.observations[2] = self.tb_proc_status.copy() #/ (2)
+        # self.observations[2] = self.tb_proc_status.copy() / (3)
+        for matrix in self.observations:
+            matrix[matrix < 0] = 0#-1
         return self.observations.copy()
 
 #################

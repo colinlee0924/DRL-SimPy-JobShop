@@ -4,4 +4,14 @@
 .DS_Store
 
 __pycache__/
+.ipynb_checkpoints/
+test_log/
+1log_djss_attention/
+log_djss_attention/
 log/
+wandb/
+model/djss_attentioin/
+
+*.csv
+*.xlsx
+*.pth

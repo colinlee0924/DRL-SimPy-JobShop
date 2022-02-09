@@ -1,0 +1,19 @@
+project: "DRL-SimPy-JSS"
+program: main_djss_attention_paper.py
+method: bayes
+metric:
+        name: MeanFT
+        goal: minimize
+parameters:
+        batch_size:
+                min: 8
+                max: 32
+        lr:
+                min: 0.00001
+                max: 0.001
+        capacity:
+                min: 1000
+                max: 10000
+        episode:
+                min: 1000
+                max: 50000

@@ -17,12 +17,12 @@ RLS_RULE = 'SPT'
 
 ## arguments ##
 DEVICE  = 'cuda'
-MODEL   = f'model/djss_attention/ddqn-attention-4m300-h4-stateNormalized-{timestramp}.pth'
+MODEL   = f'model/djss_attention/paper/ddqn-attention-4m300-h4-stateNormalized-{timestramp}.pth'
 # LOG_DIR = 'log/dqn'
 LOG_DIR = 'log_djss_attention'
 # WRITTER = f'log/DQN-3x6x6-ep99995-{time.time()}'
 # WRITTER = f'log_djss/DDQN-20x100x6-{time_start}'
-WRITTER = f'log_djss_attention/DDQN-Attention-4m-200n-300-stateNormalized-load95-{time_start}'
+WRITTER = f'log_djss_attention/paper-DDQN-Attention-4m-200n-300-stateNormalized-load95-{time_start}'
 # train
 EPISODE        = 50000
 PRIORI_PERIOD  = 0#50 #100 # 0# DIM_ACTION * 10
@@ -42,5 +42,5 @@ RENDER_EPISODE = 900
 # test
 SEED         = 999 #2021111
 # SEED         = 20211228
-SEED         = 19951027
+SEED         = 19951006#19951027
 TEST_EPSILON = .001

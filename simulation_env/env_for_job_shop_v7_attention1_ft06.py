@@ -31,8 +31,8 @@ np.random.seed(seed)
 INFINITY   = float('inf')
 OPTIMAL_L  = config.OPT_MAKESPAN
 DIM_ACTION = config.DIM_ACTION
-PADDING    = 0
-# PADDING    = -1
+# PADDING    = 0
+PADDING    = -1
 
 np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
 plt.set_loglevel('WARNING') 
@@ -101,11 +101,47 @@ class Source:
 
     def _generate_order(self):
         #get the data of orders
-        # self.order_info = self.order_info.sort_values(by='release_time')
+        self.order_info = self.order_info.sort_values(by='release_time')
         num_order       = self.fac.num_job
 
-        inter_arvl = np.random.exponential(self.expo_inter_arvl)
+        # inter_arvl = np.random.exponential(self.expo_inter_arvl)
         for num in range(num_order):
+        for num in range(num_order):
+            id        = self.order_info.loc[num, "id"]
+            routing   = self.order_info.loc[num, "routing"].split(',')
+            prc_time  = [int(i) for i in self.order_info.loc[num, "process_time"].split(',')]
+            rls_time  = self.order_info.loc[num, "release_time"]
+            intvl_arr = self.order_info.loc[num, "arrival_interval"]
+
+            _order    = Order(id, routing, prc_time, rls_time, intvl_arr)
+
+            _orders_list.append(_order)
+
+        for num in range(num_order):
+            # To decide which order arrive first
+            order = dp_rule.get_order_from(_orders_list, self.rls_rule)
+            # indx       = np.argmax([sum(o.prc_time) for o in _orders_list])
+            # order      = _orders_list[indx]
+            # order      = _orders_list[0]
+            intvl_time = order.intvl_arr
+            _orders_list.remove(order)
+
+            # wait for inter-arrival time
+            yield self.env.timeout(intvl_time)
+            # log for tracing
+            if self.fac.log:
+                print(f"    ({self.env.now}) {order} released")
+            # update est_table
+            row_job                     = order.id - 1
+            jat                         = self.env.now
+            self.fac.tb_est[row_job][3] = jat
+            # send order to queue
+            target = int(order.routing[order.progress])
+            self.queues[target].order_arrive(order)
+            # update statistics
+            self.num_generated += 1
+
+###################################################
         # while True:
             ## Delay ## wait for inter-arrival time
             yield self.env.timeout(inter_arvl)
@@ -357,6 +393,8 @@ class Machine:
             # self.fac.tb_proc_status[order.id][order.progress] = 2
             self.fac.tb_machine_no[order.id][order.progress] = 3
             # self.fac.tb_proc_times[order.id][order.progress] = PADDING
+            # self.fac.tb_machine_no[order.id][order.progress] = PADDING
+            # self.fac.tb_proc_times[order.id][order.progress] = PADDING
             ########################################################
             # job_per_channel = self.fac.job_per_channel
             # channel = int(order.id / job_per_channel)
@@ -452,9 +490,9 @@ class Factory:
         self.log            = log
         # system config
         self.jssp_config  = jssp_config
-        self.num_machine  = 4# 6 #4#6 #jssp_config.num_machine
+        self.num_machine  = jssp_config.num_machine
         self.num_op       = 3 # 4 #3#4#6
-        self.num_job      = 300 #2000#300 #1000 #jssp_config.num_job
+        self.num_job      = jssp_config.num_job
 
         self.warmup_job   = 100 # 1000 #100 #1000
         self.terminal_order_num = 200 #2000#200
@@ -462,7 +500,7 @@ class Factory:
         self.level_load      = util #0.8 #0.9
         self.avg_prc_time    = 5.5 #20.2 #18 #5.5
         self.expo_proc_time  = self.avg_prc_time #18
-        self.expo_inter_arvl = (self.avg_prc_time * self.num_op) / (self.num_machine * self.level_load)
+        # self.expo_inter_arvl = (self.avg_prc_time * self.num_op) / (self.num_machine * self.level_load)
         self.low_proc  = 3
         self.high_proc = 8
         self.low_op  = 2
@@ -598,10 +636,10 @@ class Factory:
         self.observations[1] = self.tb_proc_times.copy() / self.high_proc
         # self.observations[2] = self.tb_asgn_status
         # self.observations[3] = self.tb_proc_status
-        # self.observations[2] = self.tb_proc_status.copy() #/ (2)
-        self.observations[2] = self.tb_proc_status.copy() / (3)
-        # for matrix in self.observations:
-        #     matrix[matrix < 0] = -1
+        self.observations[2] = self.tb_proc_status.copy() #/ (2)
+        # self.observations[2] = self.tb_proc_status.copy() / (3)
+        for matrix in self.observations:
+            matrix[matrix < 0] = 0#-1
         return self.observations.copy()
 
 #################
